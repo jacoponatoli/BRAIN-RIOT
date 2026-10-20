@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PROTEST! — credits</title>
+<style>
+html,body{margin:0;background:#000;color:#fff}
+body{font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:16px}
+a{color:#fff;text-decoration:none}
+a:hover{text-decoration:underline}
+p{margin:0 0 1.2em}
+ol{margin:0;padding-left:3.5em}
+li{margin:0;word-break:break-word}
+.d{opacity:.55}
+</style>
+</head>
+<body>
+<p><a href="./">PROTEST!</a><br>Jacopo Natoli, 2026</p>
+<p class="d">Photographs of the protests across Europe, October 2026, from Wikimedia Commons, each under its own free license. Author and license for every image:</p>
+<ol id="l"></ol>
+<script>
+(() => {
+"use strict";
+const UP = "https://upload.wikimedia.org/wikipedia/commons/";
+const API = "https://commons.wikimedia.org/w/api.php";
+const W = 1280;
+const KEY = "PROTEST!v2", TTL = 12 * 3600e3;
+const SEED = `2/24/Protests_in_Tirana%2C_Albania%2C_October_2026.jpg
+2/20/Protests_in_Tirana%2C_Albania%2C_October_2026_%2859981%29.jpg
+f/fb/Protests_in_Tirana%2C_Albania%2C_October_2026_%2829636%29.jpg
+0/00/Protests_in_Tirana%2C_Albania%2C_2026.jpg
+2/26/Demonstration_in_Tirana%2C_Albania_2026.jpg
+7/7d/Street_protest_in_Tirana%2C_Albania%2C_2026..jpg
+8/8f/Manifestation_du_17_octobre_2026_%C3%A0_Paris_71.jpg
+7/77/FDSE_Limoges_apr%C3%A8s_la_manifestation_du_17-10-2026.jpg
+1/11/%C3%89glise_Saint-Vincent-de-Paul_de_Marseille_manifestation_17_octobre_2026-photo_Bertrand_SOUBEYRAND.jpg
+d/d7/Incendie_Hotel_de_ville_Limoges_20261017-185802.jpg
+f/ff/Incendie_Hotel_de_ville_Limoges_20261017-185927.jpg
+e/e1/Incendie_Hotel_de_ville_Limoges_20261017-184854.jpg
+f/f7/Incendie_Hotel_de_ville_Limoges_20261017-190526.jpg
+0/09/Incendie_Hotel_de_ville_Limoges_20261017-190142.jpg
+a/a3/Incendie_Hotel_de_ville_Limoges_20261017-192711.jpg
+5/5d/Incendie_Hotel_de_ville_Limoges_20261017-194429.jpg
+b/b8/Incendie_Hotel_de_ville_Limoges_20261017-200004.jpg
+c/c4/Incendie_Hotel_de_ville_Limoges_20261017-202851.jpg
+9/9c/Incendie_Hotel_de_ville_Limoges_20261017-204913.jpg
+4/4d/Incendie_Hotel_de_ville_Limoges_20261019-120538.jpg
+5/56/Italian_protests_2026.jpg
+9/98/Manifestation_lyc%C3%A9enne_du_6_octobre_2026_%C3%A0_Paris_03.jpg
+2/26/Manifestation_lyc%C3%A9enne_du_6_octobre_2026_%C3%A0_Paris_01.jpg
+6/64/Manifestation_lyc%C3%A9enne_du_6_octobre_2026_%C3%A0_Paris_06.jpg
+d/d2/Manifestation_lyc%C3%A9enne_du_6_octobre_2026_%C3%A0_Paris_10.jpg
+d/d7/Manifestation_lyc%C3%A9enne_du_6_octobre_2026_%C3%A0_Paris_15.jpg
+e/e9/Manifestation_lyc%C3%A9enne_du_6_octobre_2026_%C3%A0_Paris_19.jpg
+c/c0/Manifestation_lyc%C3%A9enne_du_6_octobre_2026_%C3%A0_Paris_26.jpg
+4/41/Manifestation_lyc%C3%A9enne_du_6_octobre_2026_%C3%A0_Paris_33.jpg
+6/63/Manifestation_lyc%C3%A9enne_du_6_octobre_2026_%C3%A0_Paris_40.jpg
+c/cc/Manifestation_lyc%C3%A9enne_du_6_octobre_2026_%C3%A0_Paris_48.jpg
+6/6a/Manifestation_lyc%C3%A9enne_du_6_octobre_2026_%C3%A0_Paris_54.jpg
+3/36/Manifestation_lyc%C3%A9enne_du_6_octobre_2026_%C3%A0_Paris_60.jpg
+f/ff/Manifestation_lyc%C3%A9enne_du_6_octobre_2026_%C3%A0_Paris_68.jpg
+c/cf/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_001.jpg
+d/da/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_006.jpg
+7/72/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_010.jpg
+9/97/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_016.jpg
+e/e5/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_021.jpg
+3/3e/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_026.jpg
+5/50/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_031.jpg
+2/2a/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_036.jpg
+2/2c/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_042.jpg
+f/f6/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_046.jpg
+b/be/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_050.jpg
+8/81/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_058.jpg
+a/a4/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_063.jpg
+9/97/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_068.jpg
+8/87/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_073.jpg
+1/1e/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_078.jpg
+3/30/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_091.jpg
+4/46/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_095.jpg
+3/3d/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_102.jpg
+8/8d/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_107.jpg
+1/1e/Camions_de_CRS_%C3%A0_Aix-en-Provence_02.jpg
+9/92/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_%C3%A0_Aix-en-Provence_-_13_octobre_2026_03.jpg
+c/c5/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_%C3%A0_Aix-en-Provence_-_13_octobre_2026_04.jpg
+b/b7/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_-_avenue_des_Belges_%C3%A0_Aix-en-Provence_-_13_octobre_2026_01.jpg
+5/51/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_-_avenue_Pierre_Brossolette_%C3%A0_Aix-en-Provence_-_13_octobre_2026_10.jpg
+c/c6/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_-_place_Lucien_Paye_%C3%A0_Aix-en-Provence_-_13_octobre_2026_19.jpg
+a/a2/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_-_place_Lucien_Paye_%C3%A0_Aix-en-Provence_-_13_octobre_2026_24.jpg
+d/da/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_-_place_Lucien_Paye_%C3%A0_Aix-en-Provence_-_13_octobre_2026_31.jpg
+d/d9/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_devant_la_rotonde_%C3%A0_Aix-en-Provence_-_13_octobre_2026_03.jpg
+0/0a/2026-10-19_11-51-43_Rassemblement-Belfort.jpg
+8/8d/2026-10-19_12-02-28_Rassemblement-Belfort.jpg
+c/c2/2026-10-19_Rassemblement-Belfort.jpg
+4/40/26S-Manifestaci%C3%B3n_por_la_vivienda--01.jpg
+6/6b/26S-Manifestaci%C3%B3n_por_la_vivienda--06.jpg
+6/67/26S-Manifestaci%C3%B3n_por_la_vivienda--11.jpg
+a/a1/Homenaje-maricarmen-tol-eress%C3%ABa-02.jpg
+6/6d/Homenaje-maricarmen-tol-eress%C3%ABa-05.jpg
+c/c8/Homenaje-maricarmen-tol-eress%C3%ABa-10.jpg
+9/99/Homenaje-maricarmen-tol-eress%C3%ABa-15.jpg
+0/0a/Homenaje-maricarmen-tol-eress%C3%ABa-22.jpg
+7/79/Homenaje-maricarmen-tol-eress%C3%ABa-31.jpg
+c/cc/Madrid_-_Demonstration_for_the_right_to_housing_-_Fight_for_what_is_yours_-_261008_193919.jpg
+8/8f/Madrid_-_Demonstration_for_the_right_to_housing_-_Fight_for_what_is_yours_-_261008_201505.jpg
+0/0e/Madrid_-_Demonstration_for_the_right_to_housing_-_Fight_for_what_is_yours_-_261008_202850.jpg
+e/ea/Madrid_-_Demonstration_for_the_right_to_housing_-_Fight_for_what_is_yours_-_261008_204614.jpg
+a/ab/Madrid_-_Demonstration_for_the_right_to_housing_-_Fight_for_what_is_yours_-_261008_211802.jpg
+0/05/Madrid_-_Demonstration_for_the_right_to_housing_-_Fight_for_what_is_yours_-_261008_213755.jpg
+3/31/Madrid_-_Demonstration_We_defend_public_education%2C_we_defend_the_future_-_261014_195439.jpg
+a/a3/Madrid_-_Demonstration_We_defend_public_education%2C_we_defend_the_future_-_261014_200042.jpg
+c/cf/Madrid_-_Demonstration_We_defend_public_education%2C_we_defend_the_future_-_261014_202029.jpg
+3/37/Madrid_-_Demonstration_We_defend_public_education%2C_we_defend_the_future_-_261014_203126.jpg
+1/14/Madrid_-_Demonstration_We_defend_public_education%2C_we_defend_the_future_-_261014_205306.jpg
+~1/12/Studenti_Torino_Manifestazione.png
+~0/08/Studenti_Roma_Manifestazione.png
+~9/9c/2026_Italian_unrest_montage.jpg
+2/24/Antyfaszy%C5%9Bci_na_marszu_Antyrasistowskim_w_Toruniu_2026_new.jpg
+4/4a/2026-10-17_09-54-25_Manif-Belfort.jpg
+6/6f/2026-10-17_10-08-51_Manif-Belfort.jpg
+3/31/2026-10-17_11-05-53_Manif-Belfort.jpg
+9/96/2026-10-17_10-04-15_Manif-Belfort.jpg
+a/a3/2026-10-17_11-13-40_Manif-Belfort.jpg
+c/c1/2026-10-17_10-45-52_Manif-Belfort.jpg
+e/e8/2026-10-17_11-15-42_Manif-Belfort.jpg
+2/26/2026-10-17_11-19-36_Manif-Belfort.jpg
+6/6e/2026-10-17_14-27-55_Manif-Belfort.jpg
+2/22/2026-10-17_14-33-48_Manif-Belfort.jpg
+5/5c/2026-10-17_15-24-41_Manif-Belfort.jpg
+e/ec/2026-10-17_14-53-09_Manif-Belfort.jpg
+7/77/2026-10-17_15-29-55_Manif-Belfort.jpg
+d/da/2026-10-17_14-59-42_Manif-Belfort.jpg
+f/f8/2026-10-17_14-46-03_Manif-Belfort.jpg
+f/f7/Manifestation_du_17_octobre_2026_%C3%A0_Lille.jpg
+7/72/Manifestation_du_17_octobre_2026_%C3%A0_Lille_%28France%29.jpg
+8/8f/Lyon_7e_-_Pont_de_la_Guilloti%C3%A8re_-_Pendant_les_manifestations_du_17_octobre_2026.jpg
+6/60/Lyon_2e_-_Rue_du_Pr%C3%A9sident_Carnot_-_Attaque_du_magasin_Decathlon%2C_pendant_les_manifestations_du_17_octobre_2026.jpg
+d/d8/Lyon_2e_-_Rue_de_la_R%C3%A9publique_-_Sous_les_gaz_lacrymog%C3%A8nes%2C_pendant_les_manifestations_du_17_octobre_2026.jpg
+d/d1/Lyon_2e_-_Rue_Grenette_-_Magasin_vandalis%C3%A9_pendant_les_manifestations_du_17_octobre_2026.jpg
+4/4a/Lyon_2e_-_Rue_du_Pr%C3%A9sident_%C3%89douard_Herriot_-_Feu_au_milieu_de_la_route_pendant_les_manifestations_du_17_octobre_2026.jpg
+1/11/Lyon_2e_-_Place_Bellecour_-_Tags_autour_de_la_statue_de_Louis_XIV_apr%C3%A8s_les_manifestations_du_17_octobre_2026.jpg
+f/f3/Lyon_2e_-_Place_de_la_R%C3%A9publique_-_Magasins_barricad%C3%A9s_apr%C3%A8s_les_manifestations_du_17_octobre_2026.jpg
+e/ec/Lyon_2e_-_Rue_de_la_Barre_-_Magasin_Citadium_pill%C3%A9_apr%C3%A8s_les_manifestations_du_17_octobre_2026.jpg
+1/19/Office_du_tourisme_incendi%C3%A9_%28Lyon%2C_2026%29.jpg`.split("\n");
+
+/* Where the archive keeps them.
+   a = every sub-folder belongs to the protests; c = country folder, keep only October sub-folders;
+   h = keep only sub-folders named after October; t = mixed folder, keep only protest pictures.
+   o = the folder itself is about October. */
+const ROOTS = [
+ ["Demonstrations and protests in Europe in 2026", "c"],
+ ["Manifestations du 17 octobre 2026", "ao"],
+ ["Mouvement des gilets jaunes (France) in October 2026", "ao"],
+ ["Mouvement des lycéens (France)", "a"],
+ ["2026 high school student movement and blockades in France", "a"],
+ ["Manifestation lycéenne du 6 octobre 2026 à Paris", "ao"],
+ ["2026 Hôtel de ville de Limoges fire", "ao"],
+ ["Demonstrations and protests in Paris in 2026", "h"],
+ ["Marche pour la fermeture des abattoirs", "a"],
+ ["2026 Albanian student protests", "ao"],
+ ["2026 Italian unrest (Milan)", "ao"],
+ ["Demonstrations and protests in Italy in 2026", "h"],
+ ["Demonstrations and protests in Milan in 2026", "h"],
+ ["2026 Spanish housing protests", "a"],
+ ["Anti-eviction protests in Madrid in 2026", "a"],
+ ["Demonstration for the right to housing - Fight for what is yours, Madrid", "ao"],
+ ["Demonstration for the right to housing - Towards the general strike, Madrid", "ao"],
+ ["Demonstration We defend public education, we defend the future", "ao"],
+ ["Demonstrations and protests in Madrid in 2026", "h"],
+ ["Demonstrations and protests in Barcelona in 2026", "h"],
+ ["Demonstrations and protests in Lisbon in 2026", "h"],
+ ["Demonstrations and protests in Belgium in 2026", "h"],
+ ["2026 Irish fuel protests", "a"],
+ ["2026 strikes", "h"],
+ ["2024–2026 Serbian anti-corruption protests", "h"],
+ ["Demonstrations and protests in Berlin in October 2026", "ao"],
+ ["JJxFile", "t"]
+];
+
+const NOT_2026 = /(^|\D)(19\d\d|20[01]\d|202[0-57-9])(?!\d)/;
+const OTHER_MONTH = /\b(January|February|March|April|May|June|July|August|September|November|December|janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|novembre|d[ée]cembre|gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|dicembre|enero|febrero|abril|mayo|junio|julio|septiembre|noviembre|diciembre|Januar|Februar|M[äa]rz|Juni|Juli|Dezember|janeiro|fevereiro|mar[çc]o|maio|junho|julho|setembro|novembro|dezembro|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Nov|Dec)\b|2026-(0\d|1[12])|\b\d\d?-(0\d|1[12])-2026\b|1st of May|Pride|Christopher Street/i;
+const OCTOBER = /\b(Oct|October|octobre|ottobre|octubre|outubro|Oktober|oktober|tetor|tetorit|Οκτωβρ\S*)\b|2026-10|\b\d\d?-10-2026\b|202610\d\d/i;
+const OCT_DATE = /2026[-:.\/ ]?10[-:.\/ T]|\b(Oct|October|octobre|ottobre|octubre|outubro|Oktober|oktober|tetor)\.?\s+2026|\b\d\d?[.\/]10[.\/]2026\b/i;
+const PROTEST = /protest|manif|demonstr|riot|[ée]meute|scontri|sciopero|strike|gr[èe]ve|huelga|blocage|blockade|blocus|lyc[ée]en|student|studenti|[ée]tudiant|gilets jaunes|kundgebung|\bdemo\b|betoging|corteo|rassemblement|unrest|march|marche|occupation|occupazione|encampment|acampada|protesta|clash|tear gas|lacrymog|barricad|looting|pill[ée]|saccheggi|incendi|fire|CRS|police/i;
+const NOT_PHOTO = /\b(map|mappa|carte|logo|chart|graph|diagram|flag of|coat of arms)\b/i;
+
+
+const pool = [], have = new Set();
+function itemFromPath(p) {
+  const orig = p[0] === "~"; if (orig) p = p.slice(1);
+  const name = p.slice(p.lastIndexOf("/") + 1);
+  return { k: p, n: decodeURIComponent(name).replace(/_/g, " ") };
+}
+function add(it) { if (have.has(it.k)) return false; have.add(it.k); pool.push(it); return true; }
+function fill() {}
+function save() {}
+async function api(params) {
+  const r = await fetch(API + "?" + new URLSearchParams({ format: "json", formatversion: "2", origin: "*", ...params }));
+  return JSON.parse(await r.text());
+}
+function fileItem(pg, ii) {
+  const url = ii.url.split("?")[0];
+  const k = url.replace(UP, "");
+  const name = k.slice(k.lastIndexOf("/") + 1);
+  const big = ii.width > W;
+  return { k, n: pg.title.replace(/^File:/, ""), u: big ? UP + "thumb/" + k + "/" + W + "px-" + name : url, o: big ? url : null };
+}
+async function crawl() {
+  const seen = new Set();
+  const queue = ROOTS.map(([c, f]) => ({ c: "Category:" + c, f, d: 0, oct: f.includes("o") }));
+  let found = 0, sinceSave = 0;
+  while (queue.length) {
+    const q = queue.shift();
+    if (seen.has(q.c)) continue; seen.add(q.c);
+    let cont = {};
+    do {
+      let r;
+      try {
+        r = await api({ action: "query", generator: "categorymembers", gcmtitle: q.c, gcmtype: "subcat|file", gcmlimit: "500",
+          prop: "imageinfo", iiprop: "url|size|mime|extmetadata", iiextmetadatafilter: "DateTimeOriginal", ...cont });
+      } catch (e) { return found; }               // archive busy: keep what we have
+      if (r.error) break;
+      for (const pg of (r.query && r.query.pages) || []) {
+        if (pg.ns === 14) {
+          const t = pg.title, kind = q.f.replace("o", "");
+          if (q.d >= 3 || NOT_2026.test(t.replace(/2026/g, "")) || OTHER_MONTH.test(t)) continue;
+          if (kind === "c") queue.push({ c: t, f: "h", d: q.d + 1, oct: false });
+          else if (kind === "a") queue.push({ c: t, f: "a", d: q.d + 1, oct: q.oct || OCTOBER.test(t) });
+          else if (OCTOBER.test(t)) queue.push({ c: t, f: "a", d: q.d + 1, oct: true });
+          continue;
+        }
+        const ii = pg.imageinfo && pg.imageinfo[0];
+        if (!ii || !/image\/(jpeg|png|webp)/.test(ii.mime) || NOT_PHOTO.test(pg.title)) continue;
+        if (q.f === "t" && !PROTEST.test(pg.title)) continue;
+        const dto = ((ii.extmetadata && ii.extmetadata.DateTimeOriginal && ii.extmetadata.DateTimeOriginal.value) || "").replace(/<[^>]+>/g, " ");
+        const october = /\d{4}/.test(dto) ? OCT_DATE.test(dto) : (q.oct || OCTOBER.test(q.c) || OCT_DATE.test(pg.title));
+        if (!october) continue;
+        if (add(fileItem(pg, ii))) { found++; if (++sinceSave >= 100) { save(); sinceSave = 0; } }
+      }
+      fill();
+      cont = r.continue || null;
+      await new Promise(res => setTimeout(res, 120));
+    } while (cont);
+  }
+  return found;
+}
+
+
+const list = document.getElementById("l");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const text = h => { const d = document.createElement("div"); d.innerHTML = h; return d.textContent.replace(/\s+/g, " ").trim(); };
+async function credits() {
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+  SEED.forEach(p => add(itemFromPath(p)));
+  if (cached && cached.p) cached.p.forEach(([k, n]) => add({ k, n }));
+  if (!cached || Date.now() - cached.t > TTL) await crawl();
+  const names = pool.map(i => i.n).sort((a, b) => a.localeCompare(b));
+  for (let i = 0; i < names.length; i += 50) {
+    const batch = names.slice(i, i + 50);
+    let r = {};
+    try { r = await api({ action: "query", titles: batch.map(n => "File:" + n).join("|"), prop: "imageinfo",
+      iiprop: "extmetadata", iiextmetadatafilter: "Artist|LicenseShortName" }); } catch (e) {}
+    const meta = {};
+    for (const pg of (r.query && r.query.pages) || []) {
+      const m = (pg.imageinfo && pg.imageinfo[0] && pg.imageinfo[0].extmetadata) || {};
+      meta[pg.title.replace(/^File:/, "")] = [m.Artist ? text(m.Artist.value) : "", m.LicenseShortName ? text(m.LicenseShortName.value) : ""];
+    }
+    list.insertAdjacentHTML("beforeend", batch.map(n => {
+      const [who, lic] = meta[n] || ["", ""];
+      return '<li><a href="https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(n.replace(/ /g, "_")) + '">' + esc(n) + "</a>" +
+        (who ? " — " + esc(who) : "") + (lic ? ' <span class="d">' + esc(lic) + "</span>" : "") + "</li>";
+    }).join(""));
+    await new Promise(res => setTimeout(res, 120));
+  }
+}
+credits();
+})();
+</script>
+</body>
+</html>
