@@ -270,8 +270,8 @@ const SOURCES = {
   aic: { name: "Art Institute of Chicago", weight: 1, langs: ["en", "x"], async search(term) {
     const d = await getJSON("https://api.artic.edu/api/v1/artworks/search?" + qs({ q: term, fields: "id,title,image_id,artist_title,is_public_domain",
       limit: "60", page: String(1 + rint(3)) }));
-    return (d.data || []).filter(a => a.image_id).map(a => ({ u: `https://www.artic.edu/iiif/2/${a.image_id}/full/843,/0/default.jpg`,
-      t: a.title, a: a.artist_title, l: a.is_public_domain ? "CC0" : "", k: `https://www.artic.edu/artworks/${a.id}` }));
+    return (d.data || []).filter(a => a.image_id && a.is_public_domain).map(a => ({ u: `https://www.artic.edu/iiif/2/${a.image_id}/full/843,/0/default.jpg`,
+      t: a.title, a: a.artist_title, l: "CC0", k: `https://www.artic.edu/artworks/${a.id}` }));
   }},
 
   pixabay: { name: "Pixabay", weight: 1, keep: false, langs: Object.keys(PIXABAY_LANG), async search(term, lang) {
