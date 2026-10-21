@@ -196,11 +196,14 @@ const SOURCES = {
     const host = `https://${WIKI_OF(lang)}.wikipedia.org/w/api.php?`;
     const key = "w|" + lang + "|" + term;
     if (!titles[key]) titles[key] = ((await getJSON(host + qs({ action: "query", format: "json", origin: "*",
-      list: "search", srsearch: term, srlimit: "40", srnamespace: "0" }))).query?.search || []).map(p => p.title);
-    if (!titles[key].length) return [];
-    const d = await getJSON(host + qs({ action: "query", format: "json", origin: "*", generator: "images", titles: pick(titles[key]),
-      gimlimit: "60", prop: "imageinfo", iiprop: "url|mime|size|extmetadata", iiurlwidth: String(W), iiextmetadatafilter: "Artist|LicenseShortName" }));
-    return wikiImages(d, 500);
+      list: "search", srsearch: term, srlimit: "12", srnamespace: "0" }))).query?.search || []).map(p => p.title);
+    for (const title of shuffle(titles[key].slice()).slice(0, 3)) {      // the most pertinent articles, until one has photographs
+      const d = await getJSON(host + qs({ action: "query", format: "json", origin: "*", generator: "images", titles: title,
+        gimlimit: "60", prop: "imageinfo", iiprop: "url|mime|size|extmetadata", iiurlwidth: String(W), iiextmetadatafilter: "Artist|LicenseShortName" }));
+      const out = wikiImages(d, 500);
+      if (out.length) return out;
+    }
+    return [];
   }},
 
   openverse: { name: "Openverse", weight: 3, async search(term) {
@@ -271,7 +274,7 @@ const SOURCES = {
       t: a.title, a: a.artist_title, l: a.is_public_domain ? "CC0" : "", k: `https://www.artic.edu/artworks/${a.id}` }));
   }},
 
-  pixabay: { name: "Pixabay", weight: 1.5, keep: false, langs: Object.keys(PIXABAY_LANG), async search(term, lang) {
+  pixabay: { name: "Pixabay", weight: 1, keep: false, langs: Object.keys(PIXABAY_LANG), async search(term, lang) {
     const base = { key: KEYS.pixabay, q: term, lang: PIXABAY_LANG[lang], image_type: "photo", safesearch: "true" };
     const n = await count("pb|" + lang + term, async () => (await getJSON("https://pixabay.com/api/?" + qs({ ...base, per_page: 3 }))).totalHits);
     if (!n) return [];
@@ -283,7 +286,7 @@ const SOURCES = {
     const tag = hashtag(term);
     if (!tag) return [];
     const p = { only_media: "true", limit: "40" };
-    if (Math.random() < 0.5) p.max_id = (BigInt(Math.floor(Date.now() - Math.random() * 6 * 365 * 864e5)) << 16n).toString();
+    if (Math.random() < 0.3) p.max_id = (BigInt(Math.floor(Date.now() - Math.random() * 6 * 365 * 864e5)) << 16n).toString();
     const d = await fromServers(MASTODON, `/api/v1/timelines/tag/${encodeURIComponent(tag)}?` + qs(p));
     const out = [];
     for (const s of Array.isArray(d) ? d : []) {
@@ -296,11 +299,14 @@ const SOURCES = {
 
   bluesky: { name: "Bluesky", weight: 2, langs: ["en", "x", "es", "pt", "fr", "de", "it", "ja"], async search(term) {
     const B = "https://public.api.bsky.app/xrpc/";
-    const key = "b|" + term;
-    if (!feeds[key]) feeds[key] = ((await getJSON(B + "app.bsky.unspecced.getPopularFeedGenerators?" + qs({ limit: "30", query: term }))).feeds || [])
+    const q = FEED_OK.test(term) ? term : pick(BSKY_QUERIES);       // feeds about protest, found by name
+    const key = "b|" + q;
+    if (!feeds[key]) feeds[key] = ((await getJSON(B + "app.bsky.unspecced.getPopularFeedGenerators?" + qs({ limit: "30", query: q }))).feeds || [])
       .filter(f => FEED_OK.test((f.displayName || "") + " " + (f.description || ""))).map(f => f.uri);
     if (!feeds[key].length) return [];
-    const f = await getJSON(B + "app.bsky.feed.getFeed?" + qs({ feed: pick(feeds[key]), limit: "100" }));
+    const feed = pick(feeds[key]);
+    const f = await getJSON(B + "app.bsky.feed.getFeed?" + qs({ feed, limit: "100", ...(cursors[feed] ? { cursor: cursors[feed] } : {}) }));
+    cursors[feed] = f.cursor;                                      // next time, further back in time
     const BSKY_BAD = /porn|sexual|nudity|graphic-media|gore|self-harm|spam|!hide|!warn|!no-unauthenticated/;
     const out = [];
     for (const { post: p } of f.feed || []) {
@@ -335,7 +341,9 @@ const SOURCES = {
       .map(p => ({ u: https(p.post.url), o: p.post.thumbnail_url, t: p.post.name, a: p.creator?.display_name || p.creator?.name, k: p.post.ap_id }));
   }}
 };
-const titles = {}, feeds = {};
+const titles = {}, feeds = {}, cursors = {};
+const BSKY_QUERIES = ["protest", "activism", "direct action", "strike", "riot", "antifa", "acab", "solidarity", "revolution", "resistance",
+  "no kings", "palestine", "climate justice", "labor movement", "union", "uprising", "occupy", "abolition", "anarchist", "manif", "huelga"];
 const FEED_OK = /protest|activis|direct action|strike|riot|resist|revolution|antifa|anarch|demo|manif|huelga|sciopero|occup|uprising|march|acab|1312|solidarity|abolition|no kings|palestin|climate justice|labou?r movement|union/i;
 const SOCIAL = new Set(["mastodon", "tumblr", "bluesky", "lemmy"]);
 // Numbers and short acronyms (1312, CRS, TOMA...) mean something only as hashtags or encyclopedia entries
@@ -413,12 +421,16 @@ function chooseSource() {
   for (const [k, v] of list) if ((r -= v.weight) <= 0) return k;
   return list.length ? list[0][0] : null;
 }
+// On social networks the short, widespread hashtags work best: English and the movements weigh more there
+const TAG_WEIGHT = { en: 4, x: 6, it: 1.5, fr: 1.5, es: 1.5, pt: 1.5, de: 1.5 };
 function chooseWord(k) {
   const langs = SOURCES[k].langs || LANGS;
+  const social = SOCIAL.has(k), weight = (l) => (social ? TAG_WEIGHT[l] : LANG_WEIGHT[l]) || 1;
   for (let tries = 0; tries < 12; tries++) {
-    let r = Math.random() * langs.reduce((s, l) => s + (LANG_WEIGHT[l] || 1), 0), lang = langs[0];
-    for (const l of langs) if ((r -= (LANG_WEIGHT[l] || 1)) <= 0) { lang = l; break; }
+    let r = Math.random() * langs.reduce((s, l) => s + weight(l), 0), lang = langs[0];
+    for (const l of langs) if ((r -= weight(l)) <= 0) { lang = l; break; }
     const term = pick(TERMS[lang]);
+    if (social && term.split(/\s+/).length > 3) continue;
     if (wordFits(k, term) && !dead.has(k + "|" + lang + "|" + term)) return [lang, term];
   }
   return null;
@@ -435,7 +447,7 @@ async function hunt() {
     const items = await Promise.race([SOURCES[k].search(term, lang), sleep(30000).then(() => { throw new Error("slow"); })]);
     fails[k] = 0;
     let n = 0;
-    for (const it of items || []) if (add(it, k)) n++;
+    for (const it of shuffle((items || []).slice()).slice(0, 30)) if (add(it, k)) n++;   // no source floods the others
     if (!items || !items.length) { dead.add(k + "|" + lang + "|" + term); st.empty++; }
     st.found += (items || []).length; st.added += n; st.last = lang + ": " + term + " → " + n;
     if (n) fill();
