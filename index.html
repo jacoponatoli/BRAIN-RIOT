@@ -17,486 +17,167 @@ html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden;cursor
 <div id="s"></div>
 <script>
 /* PROTEST! — Jacopo Natoli, 2026
-   An endless stream of images of protest, from everywhere and every time.
-   The page keeps searching open archives, museums, encyclopedias and social networks
-   with hundreds of words of protest in dozens of languages, and the stream never stops growing.
-   Each image is shown for a random time under one second. Authors and licenses: credits.html */
+   The protests of all the world, from this summer to now: every photograph that Wikimedia Commons files
+   among the demonstrations and protests of these months, shown one after the other, half a second each.
+   The window slides forward with time and the page keeps looking for new photographs. Credits: credits.html */
 (() => {
 "use strict";
 
-/* ============================================================
-   WORDS — one list per language, separated by |
-   On archives a line is searched as it is; on social networks it becomes a hashtag.
-   ============================================================ */
-const WORDS = {
-en: `protest|protesters|protest march|street protest|mass protest|student protest|demonstration|demonstrators|riot|riots|rioters|riot police|riot shield|police line|police brutality|clashes with police|police charge|tear gas|water cannon|rubber bullets|pepper spray|barricade|barricades|burning barricade|molotov cocktail|black bloc|occupy|occupation protest|student occupation|university occupation|sit-in|die-in|squatters|squat eviction|general strike|labor strike|strikers|picket line|walkout|protest rally|uprising|insurrection|revolt|rebellion|revolution|resistance|civil disobedience|direct action|blockade|road blockade|hunger strike|protest camp|encampment|tent city|protest sign|placard|protest banner|megaphone protest|kettling|eviction protest|anti-war protest|peace march|anti-fascist|climate strike|climate protest|anti-austerity|cost of living protest|housing protest|rent strike|farmers protest|workers protest|May Day march|women's march|pride march|anti-racism protest|anti-government protest|pro-democracy protest|anti-nuclear protest|anti-globalization|anti-apartheid|civil rights march|suffragettes|protest graffiti|political graffiti|protest art|protest poster|burning car|smoke bomb|flares protest|protest crowd|candlelight vigil|march on parliament|people power|land occupation|burning tyres|stone throwing|riot gear|arrested protester|police cordon|protest chant|raised fist|protest flag|strike committee|occupied factory|dock strike|miners strike|teachers strike|nurses strike|school strike|student strike|bus boycott|boycott|petition march|protest song|banner drop`,
-x: `ACAB|1312|All Cops Are Bastards|No Justice No Peace|Black Lives Matter|BLM protest|George Floyd protests|I Can't Breathe|Say Her Name|Ni Una Menos|Woman Life Freedom|Zan Zendegi Azadi|Mahsa Amini protests|Free Palestine|Gaza solidarity encampment|Ceasefire Now|Stop the War|No War|No Kings|Abolish ICE|EndSARS|Reject Finance Bill|Fees Must Fall|Rhodes Must Fall|Fridays for Future|Extinction Rebellion|Climate Strike|Just Stop Oil|Last Generation|Occupy Wall Street|Occupy movement|We are the 99%|Gilets Jaunes|Indignados|Arab Spring|Tahrir Square|Jasmine Revolution|Syrian revolution|Gezi Park protests|Euromaidan|Revolution of Dignity|Orange Revolution|Rose Revolution|Velvet Revolution|Singing Revolution|Baltic Way|Solidarnosc|Carnation Revolution|People Power Revolution|Tiananmen 1989|Umbrella Movement|Hong Kong protests|Stand with Hong Kong|White Paper protests|Sunflower Student Movement|Milk Tea Alliance|Thai protests|Myanmar Spring Revolution|Saffron Revolution|Aragalaya|Go Home Gota|Nepal Gen Z protests|Gen Z protests|Bangladesh quota reform|July Revolution Bangladesh|Shaheen Bagh|Indian farmers protest|Soweto uprising|Sharpeville|anti-apartheid movement|Marikana|Sudanese revolution|Algerian Hirak|Lebanon October revolution|Tishreen protests|Mapuche|Standing Rock|NoDAPL|Idle No More|Wet'suwet'en|Zapatista|Chile 2019 protests|Estallido Social Chile|Colombian national strike|Ayotzinapa 43|Argentinazo|Que se vayan todos|Caracazo|Venezuela protests|Nicaragua protests 2018|Cuba 11J|Haiti protests|Ricky Renuncia|June Journeys Brazil|Battle of Seattle|Seattle WTO 1999|Genoa G8 2001|G20 protests|anti-globalization movement|Stonewall riots|ACT UP|civil rights movement|Selma to Montgomery|March on Washington|Freedom Riders|Vietnam War protests|Kent State|May 1968|Prague Spring|Hungarian Revolution 1956|Monday demonstrations|Gwangju Uprising|8888 Uprising|EDSA revolution|Reclaim the Streets|Critical Mass|Women's Strike|Bread and Roses|Haymarket affair|Miners Strike 1984|Poll Tax Riots|Brixton riots|Battle of Cable Street|Battle of Orgreave|LA riots 1992|Ferguson protests|Baltimore protests|Portland protests|Minneapolis uprising|Antifa|No Pasaran|Alerta Antifascista|Free Tibet|Belarus protests 2020|Serbian student protests|Tbilisi protests|Armenian Velvet Revolution|Kazakhstan unrest 2022|Iran protests 2022|Iraq protests 2019|Ecuador protests|Peru protests|Kenya protests 2024|Nigeria protests|Togo protests|Senegal protests|Mozambique protests|Madagascar Gen Z|GenZ212 Morocco|Indonesia protests 2025|Philippines anti-corruption protest|Nepal protests 2025|Slovakia protests|Hungary protests|Israel judicial reform protests|Pots and Pans Revolution|Women's March|Pussy Riot|FEMEN protest|Ultima Generazione|Letzte Generation|Soulevements de la Terre|Notre-Dame-des-Landes|NoTAV|Hambacher Forst|Lützerath|Extinction Rebellion A12|Climate camp|Ende Gelände|Occupy Central|Bloquons tout|Maidan Nezalezhnosti|Plaza de Mayo|Puerta del Sol|Syntagma Square|Taksim Square|Place de la République|Piazza del Popolo corteo|Trafalgar Square protest|Alexanderplatz Demo`,
-it: `protesta|proteste|manifestazione|manifestanti|corteo|cortei|presidio|sciopero|sciopero generale|scioperanti|scontri|scontri con la polizia|guerriglia urbana|cariche della polizia|celere|lacrimogeni|idranti|barricate|occupazione|occupazione studentesca|scuola occupata|centro sociale|sgombero|movimento studentesco|Sessantotto|movimento del 77|Indiani metropolitani|Autonomia operaia|No TAV|G8 Genova|Carlo Giuliani|antifascismo|corteo antifascista|25 aprile corteo|Primo Maggio|rivolta|insurrezione|disobbedienza civile|picchetto|blocco stradale|fiaccolata|tafferugli|disordini|Non una di meno|Ultima Generazione|lotta di classe|operai in piazza|Onda studentesca|No Global|No Ponte|Palestina libera|sciopero dei trasporti|metalmeccanici sciopero|occupazione delle terre|braccianti sciopero`,
-fr: `manifestation|manifestants|manif|émeute|émeutes|émeutiers|révolte|grève|grève générale|grévistes|piquet de grève|blocage|barricade|barricades|CRS|gaz lacrymogène|canon à eau|black bloc|cortège de tête|cortège|rassemblement|occupation|ZAD|Mai 68|gilets jaunes|Nuit debout|violences policières|insurrection|révolution|désobéissance civile|marche pour le climat|Bloquons tout|émeutes de 2005|manif sauvage|Commune de Paris|sans-papiers|lycéens en grève|mouvement social|réforme des retraites manifestation|Sainte-Soline|méga-bassines|Soulèvements de la Terre|intersyndicale|nasse policière|grenade lacrymogène|LBD|manifestation étudiante|marche blanche|marche des fiertés`,
-es: `protesta|protestas|manifestación|manifestantes|marcha|huelga|huelga general|huelguistas|disturbios|enfrentamientos|antidisturbios|gas lacrimógeno|barricadas|cacerolazo|piquete|piqueteros|okupa|okupas|acampada|indignados|15M|estallido social|primera línea|paro nacional|marcha estudiantil|revuelta|insurrección|levantamiento|resistencia|desobediencia civil|Ni Una Menos|Madres de Plaza de Mayo|Ayotzinapa|desahucio|Stop Desahucios|toma de tierras|bloqueo de carreteras|corte de ruta|zapatistas|EZLN|Tlatelolco 1968|movimiento estudiantil|marea verde|huelga feminista|Rodea el Congreso|marcha del orgullo|protesta indígena|minga indígena|represión policial|Plaza Dignidad|huelga minera|carabineros protesta|manifestación por la vivienda`,
-pt: `protesto|protestos|manifestação|manifestantes|greve|greve geral|grevistas|passeata|ocupação|ocupa escola|piquete|barricada|tropa de choque|gás lacrimogêneo|confronto com a polícia|revolta|Revolução dos Cravos|25 de Abril|Jornadas de Junho|Diretas Já|MST|sem-terra|ocupação de terra|Fora Bolsonaro|Ele Não|ato político|resistência|desobediência civil|marcha|panelaço|greve dos caminhoneiros|Vidas Negras Importam|movimento estudantil|Caras Pintadas|Grito dos Excluídos|bloqueio de estrada|manifestação estudantil`,
-de: `Protest|Demonstration|Demonstranten|Kundgebung|Streik|Generalstreik|Warnstreik|Krawalle|Ausschreitungen|Straßenschlacht|Wasserwerfer|Tränengas|Polizeigewalt|Hausbesetzung|Hausbesetzer|Besetzung|Sitzblockade|Blockade|Barrikade|Aufstand|Revolte|Widerstand|ziviler Ungehorsam|Montagsdemonstration|Friedliche Revolution|Ostermarsch|Anti-Atom-Demo|Castor Protest|Wackersdorf|Startbahn West|1. Mai Demo|Revolutionärer 1. Mai|Antifa Demo|Letzte Generation|Ende Gelände|Hambacher Forst|Lützerath|Klimastreik|Schwarzer Block|G20 Hamburg|Rote Flora|Studentenbewegung 1968|Mietendemo|Bauernproteste|Großdemonstration|Demo gegen Rechts|Arbeiteraufstand 1953`,
-nl: `protest|betoging|demonstratie|demonstranten|staking|rellen|relschoppers|krakers|kraakpand|kraakbeweging|bezetting|blokkade|Provo|boerenprotest|klimaatmars|Malieveld protest|studentenprotest|algemene staking|vakbondsactie|ME charge`,
-ca: `manifestació|vaga|vaga general|protesta|aldarulls|càrregues policials|1 d'octubre|Tsunami Democràtic|okupació|vaga estudiantil|Diada manifestació|acampada Plaça Catalunya`,
-eu: `manifestazioa|greba|greba orokorra|istiluak|protesta`,
-pl: `protest|demonstracja|manifestacja|strajk|strajk generalny|zamieszki|Solidarność|Strajk Kobiet|Czarny Protest|barykada|gaz łzawiący|protest rolników|protest studentów|Stocznia Gdańska strajk`,
-cs: `demonstrace|stávka|generální stávka|nepokoje|Sametová revoluce|Milion chvilek|protestní shromáždění`,
-sk: `demonštrácia|štrajk|nepokoje|Nežná revolúcia|Za slušné Slovensko|protestné zhromaždenie`,
-hu: `tüntetés|tüntetők|sztrájk|zavargás|tiltakozás|1956-os forradalom|diáktüntetés`,
-ro: `protest|proteste|manifestație|grevă|grevă generală|Revoluția din 1989|Colectiv protest|Piața Victoriei protest|mineriada`,
-bg: `протест|протести|демонстрация|стачка|безредици|студентски протест`,
-sr: `протест|протести|демонстрације|штрајк|студентски протест|блокада|protest|protesti|demonstracije|blokada fakulteta|Otpor|studenti u blokadi`,
-hr: `prosvjed|prosvjedi|prosvjednici|štrajk|demonstracije|neredi`,
-sl: `protest|demonstracije|stavka|vstaja|protestni shod`,
-sq: `protestë|protesta|protestuesit|demonstratë|grevë|protesta studentore`,
-mk: `протест|протести|Шарена револуција|демонстрации`,
-el: `διαδήλωση|διαδηλώσεις|διαδηλωτές|διαμαρτυρία|απεργία|γενική απεργία|πορεία|επεισόδια|ταραχές|ΜΑΤ|δακρυγόνα|εξέγερση|Πολυτεχνείο|κατάληψη|Εξάρχεια|Αγανακτισμένοι|Δεκεμβριανά 2008`,
-tr: `protesto|eylem|gösteri|grev|genel grev|direniş|isyan|ayaklanma|Gezi Parkı|Gezi direnişi|çevik kuvvet|biber gazı|TOMA|barikat|işgal|yürüyüş|miting|Saraçhane|1 Mayıs Taksim|öğrenci eylemi|Cumartesi Anneleri`,
-ru: `протест|протесты|митинг|демонстрация|забастовка|беспорядки|ОМОН|автозак|пикет|одиночный пикет|баррикады|революция|Болотная площадь|восстание|сопротивление|протесты в Беларуси|марш несогласных`,
-uk: `протест|протести|мітинг|демонстрація|страйк|Євромайдан|Майдан|Революція гідності|барикади|Помаранчева революція`,
-be: `пратэст|пратэсты`,
-ka: `პროტესტი|აქცია|საპროტესტო აქცია|დემონსტრაცია`,
-hy: `բողոքի ակցիա|ցույց|Թավշյա հեղափոխություն`,
-az: `etiraz|mitinq|aksiya`,
-kk: `наразылық|Желтоқсан көтерілісі`,
-mn: `жагсаал|эсэргүүцлийн жагсаал`,
-fa: `تظاهرات|اعتراض|اعتراضات|معترضان|اعتصاب|اعتصابات|شورش|انقلاب|زن زندگی آزادی|جنبش سبز|خیزش|اعتراضات ایران|تظاهرات دانشجویی`,
-ar: `مظاهرة|مظاهرات|متظاهرون|احتجاج|احتجاجات|اعتصام|إضراب|إضراب عام|ثورة|انتفاضة|الربيع العربي|ميدان التحرير|الشعب يريد إسقاط النظام|حراك|الحراك الشعبي|اشتباكات|قنابل الغاز|عصيان مدني|ثورة يناير|ثورة تشرين|الثورة السورية|الثورة التونسية|مسيرة العودة|الثورة السودانية`,
-he: `הפגנה|הפגנות|מפגינים|מחאה|שביתה|שביתה כללית|מחאת האוהלים|מחאת קפלן`,
-ku: `xwepêşandan|serhildan`,
-ur: `احتجاج|مظاہرہ|مظاہرین|ہڑتال|دھرنا|لانگ مارچ`,
-hi: `विरोध प्रदर्शन|प्रदर्शनकारी|आंदोलन|हड़ताल|धरना|किसान आंदोलन|भारत बंद|छात्र आंदोलन|जन आंदोलन|लाठीचार्ज|शाहीन बाग`,
-bn: `বিক্ষোভ|আন্দোলন|হরতাল|প্রতিবাদ|গণঅভ্যুত্থান|কোটা সংস্কার আন্দোলন|ভাষা আন্দোলন|শাহবাগ আন্দোলন|ছাত্র আন্দোলন|অবরোধ`,
-ta: `போராட்டம்|ஆர்ப்பாட்டம்|வேலைநிறுத்தம்|ஜல்லிக்கட்டு போராட்டம்`,
-te: `నిరసన|ధర్నా|సమ్మె`,
-ml: `പ്രതിഷേധം|സമരം|ഹർത്താൽ`,
-mr: `आंदोलन|मोर्चा|संप`,
-pa: `ਧਰਨਾ|ਕਿਸਾਨ ਮੋਰਚਾ|ਮੁਜ਼ਾਹਰਾ`,
-ne: `आन्दोलन|प्रदर्शन|विरोध प्रदर्शन|जनआन्दोलन`,
-si: `අරගලය|උද්ඝෝෂණය|වර්ජනය`,
-th: `การประท้วง|ผู้ชุมนุม|ชุมนุม|ม็อบ|การชุมนุมทางการเมือง|คนเสื้อแดง|ราษฎร|สลายการชุมนุม`,
-km: `បាតុកម្ម`,
-my: `ဆန္ဒပြ|ဆန္ဒပြပွဲ|သပိတ်`,
-vi: `biểu tình|đình công|phản đối|người biểu tình`,
-id: `unjuk rasa|demonstrasi|demo mahasiswa|mogok kerja|aksi massa|kerusuhan|Reformasi 1998|aksi Kamisan|Indonesia Gelap|gas air mata`,
-ms: `tunjuk perasaan|perhimpunan|Bersih|himpunan rakyat`,
-tl: `kilos-protesta|rali|welga|People Power|EDSA|martsa`,
-zh: `抗议|示威|游行|示威游行|罢工|暴动|骚乱|占领|六四事件|白纸运动|乌坎事件|罢课`,
-zht: `抗議|示威|遊行|罷工|佔領|反送中|雨傘運動|佔領中環|太陽花學運|野草莓運動|七一遊行|催淚彈|光復香港`,
-ja: `デモ|デモ行進|抗議|抗議活動|ストライキ|安保闘争|全共闘|学生運動|三里塚闘争|成田闘争|反原発デモ|機動隊|座り込み`,
-ko: `시위|집회|촛불집회|촛불시위|파업|총파업|민주화운동|5·18 민주화운동|6월 민주항쟁|노동자대회|민중총궐기|최루탄|광화문 집회`,
-sw: `maandamano|waandamanaji|mgomo|uasi`,
-am: `ሰልፍ|ተቃውሞ`,
-ha: `zanga-zanga`,
-zu: `umbhikisho`,
-af: `betoging|protesoptog|staking`,
-fi: `mielenosoitus|mielenosoittajat|lakko|yleislakko|mellakka`,
-sv: `demonstration|demonstranter|strejk|generalstrejk|upplopp|kravaller|ockupation`,
-da: `demonstration|strejke|uroligheder|Ungdomshuset|Christiania|storstrejke`,
-no: `demonstrasjon|streik|opptøyer|generalstreik`,
-is: `mótmæli|Búsáhaldabyltingin|verkfall`,
-et: `meeleavaldus|streik|Laulev revolutsioon`,
-lv: `protests|demonstrācija|streiks|Baltijas ceļš|barikādes 1991`,
-lt: `protestas|mitingas|streikas|Baltijos kelias|Sąjūdis`,
-ga: `agóid|stailc|máirseáil`,
-cy: `protest|streic|gorymdaith`,
-ht: `manifestasyon|grèv|peyi lòk`
-};
-const LANGS = Object.keys(WORDS);
-const TERMS = Object.fromEntries(LANGS.map(l => [l, WORDS[l].split("|").map(s => s.trim()).filter(Boolean)]));
-// How often each list is drawn: the general words and the movements weigh more, then every language the same
-const LANG_WEIGHT = { en: 3, x: 4, it: 1.5, fr: 1.5, es: 1.5, pt: 1.5, de: 1.5 };
-const EUROPE = ["en", "x", "it", "fr", "es", "pt", "de", "nl", "ca", "eu", "pl", "cs", "sk", "hu", "ro", "bg", "sr", "hr", "sl", "sq", "mk", "el", "fi", "sv", "da", "no", "is", "et", "lv", "lt", "ga", "cy"];
-const PIXABAY_LANG = { en: "en", x: "en", it: "it", fr: "fr", es: "es", pt: "pt", de: "de", nl: "nl", pl: "pl", cs: "cs", sk: "sk", hu: "hu", ro: "ro", bg: "bg", el: "el", tr: "tr", ru: "ru", fi: "fi", sv: "sv", da: "da", no: "no", id: "id", vi: "vi", th: "th", ja: "ja", ko: "ko", zh: "zh" };
-const WIKI_OF = (l) => l === "x" ? "en" : l === "zht" ? "zh" : l;
+const STEP = 500;                   // every image stays half a second
+const WINDOW_DAYS = 150;            // from this summer to now; it moves forward with time
+const REFRESH = 3 * 3600e3;         // look for new photographs every three hours
+const W = matchMedia("(pointer:coarse)").matches ? 960 : 1280;
 
-/* ============================================================
-   KEYS — free keys, the same ones used by PLAYPLAYPLAYPLAY
-   ============================================================ */
-const KEYS = {
-  pixabay: "57943986-8bcff37677890fec525efe997",
-  tumblr: "wyZAJsWWKHGnZZzGPYnhVrdZVnZF4lB8xuTkcyW2W1xORGmg9V",
-  europeana: "api2demo",
-  smithsonian: "DEMO_KEY"
-};
-const MASTODON = ["mastodon.social", "mas.to", "mastodon.online", "mastodon.world", "kolektiva.social", "climatejustice.social",
-  "mastodon.bida.im", "mastodon.uno", "sociale.network", "mstdn.jp", "social.coop", "piaille.fr", "mamot.fr", "mastodon.nl"];
-const LEMMY = ["lemmy.world", "lemmy.ml", "sh.itjust.works", "lemmy.zip", "feddit.org", "lemmy.ca", "lemmy.blahaj.zone"];
+const NOW = Date.now(), START = NOW - WINDOW_DAYS * 864e5, END = NOW + 864e5;
+const YEARS = []; for (let y = new Date(START).getUTCFullYear(); y <= new Date(NOW).getUTCFullYear(); y++) YEARS.push(y);
+const ROOTS = YEARS.map(y => "Category:Demonstrations and protests in " + y);
+const API = "https://commons.wikimedia.org/w/api.php?";
+const KEY = "PROTEST!recent", SEEN_KEY = "PROTEST!seen";
 
-/* ============================================================
-   TOOLS
-   ============================================================ */
-const IS_MOBILE = matchMedia("(pointer:coarse)").matches;
-const W = IS_MOBILE ? 960 : 1280;                          // preferred image width
-const pick = (a) => a[Math.floor(Math.random() * a.length)];
-const rint = (n) => Math.floor(Math.random() * n);
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-const qs = (o) => new URLSearchParams(o).toString();
-const https = (u) => String(u || "").replace(/^http:\/\//i, "https://").replace(/ /g, "%20");
-const one = (v) => Array.isArray(v) ? v[0] : v;
-const clip = (s, n) => String(s || "").replace(/\s+/g, " ").trim().slice(0, n);
-const strip = (h) => h ? clip(new DOMParser().parseFromString(String(h), "text/html").body.textContent, 400) : "";
-const quote = (t) => /\s/.test(t) ? `"${t}"` : t;
-const hashtag = (t) => t.normalize("NFC").replace(/[^\p{L}\p{M}\p{N}_]/gu, "").toLowerCase();
-const BAD = /\b(porn|nsfw|xxx|nude|nudity|naked|sex|sexy|hentai|gore|corpse|cadaver|erotic|fetish|onlyfans)\b/i;
-const NOT_PHOTO = /\b(logo|flag of|coat of arms|map of|locator|icon|emblem|seal of|signature|diagram|chart|graph)\b|\.svg/i;
-function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = rint(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-
-async function getJSON(url, opts = {}, ms = 15000) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), ms);
-  try {
-    const r = await fetch(url, { ...opts, signal: ctrl.signal });
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    return await r.json();
-  } finally { clearTimeout(t); }
-}
-function jsonp(url, ms = 12000) {     // for Tumblr, which has no CORS
-  return new Promise((resolve, reject) => {
-    const cb = "__p" + Math.random().toString(36).slice(2);
-    const s = document.createElement("script");
-    const done = () => { clearTimeout(t); delete window[cb]; s.remove(); };
-    const t = setTimeout(() => { done(); reject(new Error("timeout")); }, ms);
-    window[cb] = (d) => { done(); resolve(d); };
-    s.onerror = () => { done(); reject(new Error("blocked")); };
-    s.src = url + "&callback=" + cb;
-    document.head.appendChild(s);
-  });
-}
-const counts = {};                   // number of results of a search, asked once
-async function count(key, getter) { if (counts[key] == null) counts[key] = (await getter()) || 0; return counts[key]; }
-const badServer = {};                // for networks made of many servers
-async function fromServers(servers, path) {
-  const ok = servers.filter(h => !(badServer[h] > Date.now()));
-  if (!ok.length) throw new Error("no servers");
-  const host = pick(ok);
-  try { return await getJSON(`https://${host}${path}`); }
-  catch (e) { badServer[host] = Date.now() + 20 * 60e3; throw e; }
-}
-const lic = (l, v) => l ? ("CC " + String(l).toUpperCase() + " " + (v || "")).replace(/^CC (CC0|PDM)/, "$1").trim() : "";
-
-/* ============================================================
-   SOURCES — each search returns images: { u, o (fallback), t, a, l, k (link) }
-   ============================================================ */
-const SOURCES = {
-
-  commons: { name: "Wikimedia Commons", weight: 5, async search(term) {
-    const s = "filetype:bitmap " + quote(term);
-    const api = "https://commons.wikimedia.org/w/api.php?";
-    const n = await count("c|" + s, async () => (await getJSON(api + qs({ action: "query", format: "json", origin: "*",
-      list: "search", srsearch: s, srnamespace: "6", srlimit: "1", srinfo: "totalhits" }))).query?.searchinfo?.totalhits);
-    if (!n) return [];
-    const d = await getJSON(api + qs({ action: "query", format: "json", origin: "*", generator: "search", gsrsearch: s,
-      gsrnamespace: "6", gsrlimit: "50", gsroffset: String(rint(Math.max(1, Math.min(n - 50, 9900)))),
-      prop: "imageinfo", iiprop: "url|mime|extmetadata", iiurlwidth: String(W), iiextmetadatafilter: "Artist|LicenseShortName" }));
-    return wikiImages(d);
-  }},
-
-  wikipedia: { name: "Wikipedia", weight: 4, async search(term, lang) {
-    const host = `https://${WIKI_OF(lang)}.wikipedia.org/w/api.php?`;
-    const key = "w|" + lang + "|" + term;
-    if (!titles[key]) titles[key] = ((await getJSON(host + qs({ action: "query", format: "json", origin: "*",
-      list: "search", srsearch: term, srlimit: "12", srnamespace: "0" }))).query?.search || []).map(p => p.title);
-    for (const title of shuffle(titles[key].slice()).slice(0, 3)) {      // the most pertinent articles, until one has photographs
-      const d = await getJSON(host + qs({ action: "query", format: "json", origin: "*", generator: "images", titles: title,
-        gimlimit: "60", prop: "imageinfo", iiprop: "url|mime|size|extmetadata", iiurlwidth: String(W), iiextmetadatafilter: "Artist|LicenseShortName" }));
-      const out = wikiImages(d, 500);
-      if (out.length) return out;
-    }
-    return [];
-  }},
-
-  openverse: { name: "Openverse", weight: 3, async search(term) {
-    const base = { q: term, page_size: "20", mature: "false" };
-    const pages = await count("ov|" + term, async () => (await getJSON("https://api.openverse.org/v1/images/?" + qs({ ...base, page: "1" }), {}, 25000)).page_count);
-    if (!pages) return [];
-    const d = await getJSON("https://api.openverse.org/v1/images/?" + qs({ ...base, page: String(1 + rint(Math.min(pages, 12))) }), {}, 25000);
-    return (d.results || []).filter(r => r.url && !BAD.test((r.tags || []).map(x => x.name).join(" "))).map(r => ({
-      u: https(r.url), o: r.thumbnail, t: r.title, a: r.creator, l: lic(r.license, r.license_version), k: r.foreign_landing_url, s: "openverse/" + (r.source || "")
-    }));
-  }},
-
-  archive: { name: "Internet Archive", weight: 2, async search(term) {
-    const q = `mediatype:image AND (subject:${quote(term)} OR title:${quote(term)})`;
-    const url = (rows, page) => { const p = new URLSearchParams({ q, rows, page, output: "json" }); p.append("fl[]", "identifier"); return "https://archive.org/advancedsearch.php?" + p; };
-    const n = await count("ia|" + q, async () => (await getJSON(url(1, 1))).response?.numFound);
-    if (!n) return [];
-    const d = await getJSON(url(50, 1 + rint(Math.max(1, Math.min(Math.floor(n / 50), 100)))));
-    const ids = shuffle((d.response?.docs || []).map(x => x.identifier)).slice(0, 5);
-    const out = await Promise.all(ids.map(async id => {
-      try {
-        const m = await getJSON("https://archive.org/metadata/" + encodeURIComponent(id));
-        if (!m || m.is_dark || !Array.isArray(m.files)) return [];
-        const md = m.metadata || {};
-        return m.files.filter(f => /\.(jpe?g|png)$/i.test(f.name) && !/thumb|_itemimage/i.test(f.name) && (+f.size || 0) < 5e6 && (+f.size || 0) > 3e4)
-          .slice(0, 6).map(f => ({ u: "https://archive.org/download/" + encodeURIComponent(id) + "/" + f.name.split("/").map(encodeURIComponent).join("/"),
-            t: one(md.title) || id, a: one(md.creator), l: md.licenseurl ? lic(String(md.licenseurl).split("/licenses/")[1]?.split("/")[0], "") : "",
-            k: "https://archive.org/details/" + encodeURIComponent(id) }));
-      } catch (e) { return []; }
-    }));
-    return out.flat();
-  }},
-
-  europeana: { name: "Europeana", weight: 2, langs: EUROPE, async search(term) {
-    const base = { wskey: KEYS.europeana, query: quote(term), qf: "TYPE:IMAGE", media: "true", reusability: "open", profile: "standard" };
-    const api = "https://api.europeana.eu/record/v2/search.json?";
-    const n = await count("eu|" + term, async () => (await getJSON(api + qs({ ...base, rows: 1, start: 1 }))).totalResults);
-    if (!n) return [];
-    const d = await getJSON(api + qs({ ...base, rows: 50, start: 1 + rint(Math.max(1, Math.min(n - 50, 950))) }));
-    return (d.items || []).filter(it => one(it.edmPreview)).map(it => {
-      const full = one(it.edmIsShownBy);
-      const prev = https(one(it.edmPreview)) + "&size=w400";
-      return { u: full && /\.(jpe?g|png)(\?|$)/i.test(full) ? https(full) : prev, o: prev, t: one(it.title), a: one(it.dcCreator) || one(it.dataProvider),
-               l: lic(String(one(it.rights) || "").split("/licenses/")[1]?.split("/")[0] || (/publicdomain/.test(one(it.rights)) ? "PDM" : ""), ""), k: it.guid };
-    });
-  }},
-
-  smithsonian: { name: "Smithsonian", weight: 0.5, langs: ["en", "x"], async search(term) {
-    const q = `${quote(term)} AND online_media_type:Images`;
-    const api = "https://api.si.edu/openaccess/api/v1.0/search?";
-    const n = await count("si|" + q, async () => (await getJSON(api + qs({ q, rows: "1", api_key: KEYS.smithsonian }))).response?.rowCount);
-    if (!n) return [];
-    const d = await getJSON(api + qs({ q, rows: "100", start: String(rint(Math.max(1, Math.min(n - 100, 2000)))), api_key: KEYS.smithsonian }));
-    const out = [];
-    for (const r of d.response?.rows || []) {
-      const m = (r.content?.descriptiveNonRepeating?.online_media?.media || []).find(x => x.type === "Images" && x.content);
-      if (!m) continue;
-      out.push({ u: https(/deliveryService/.test(m.content) ? m.content + "&max=" + W : m.content), t: r.title,
-                 a: one(r.content?.freetext?.name)?.content, l: "CC0", k: r.content?.descriptiveNonRepeating?.record_link });
-    }
-    return out;
-  }},
-
-  pixabay: { name: "Pixabay", weight: 1, keep: false, langs: Object.keys(PIXABAY_LANG), async search(term, lang) {
-    const base = { key: KEYS.pixabay, q: term, lang: PIXABAY_LANG[lang], image_type: "photo", safesearch: "true" };
-    const n = await count("pb|" + lang + term, async () => (await getJSON("https://pixabay.com/api/?" + qs({ ...base, per_page: 3 }))).totalHits);
-    if (!n) return [];
-    const d = await getJSON("https://pixabay.com/api/?" + qs({ ...base, per_page: 100, page: 1 + rint(Math.max(1, Math.floor(Math.min(n, 500) / 100))) }));
-    return (d.hits || []).map(h => ({ u: h.largeImageURL || h.webformatURL, o: h.webformatURL, t: h.tags, a: h.user, l: "Pixabay", k: h.pageURL }));
-  }},
-
-  mastodon: { name: "Mastodon", weight: 5, async search(term) {
-    const tag = hashtag(term);
-    if (!tag) return [];
-    const p = { only_media: "true", limit: "40" };
-    if (Math.random() < 0.3) p.max_id = (BigInt(Math.floor(Date.now() - Math.random() * 6 * 365 * 864e5)) << 16n).toString();
-    const d = await fromServers(MASTODON, `/api/v1/timelines/tag/${encodeURIComponent(tag)}?` + qs(p));
-    const out = [];
-    for (const s of Array.isArray(d) ? d : []) {
-      if (s.sensitive || BAD.test(s.content || "") || (s.tags || []).some(t => BAD.test(t.name))) continue;
-      for (const m of s.media_attachments || []) if (m.type === "image" && m.url)
-        out.push({ u: m.url, o: m.preview_url, t: strip(s.content).slice(0, 90) || "#" + tag, a: s.account?.display_name || s.account?.acct, k: s.url });
-    }
-    return out;
-  }},
-
-  bluesky: { name: "Bluesky", weight: 2, langs: ["en", "x", "es", "pt", "fr", "de", "it", "ja"], async search(term) {
-    const B = "https://public.api.bsky.app/xrpc/";
-    const q = FEED_OK.test(term) ? term : pick(BSKY_QUERIES);       // feeds about protest, found by name
-    const key = "b|" + q;
-    if (!feeds[key]) feeds[key] = ((await getJSON(B + "app.bsky.unspecced.getPopularFeedGenerators?" + qs({ limit: "30", query: q }))).feeds || [])
-      .filter(f => FEED_OK.test((f.displayName || "") + " " + (f.description || ""))).map(f => f.uri);
-    if (!feeds[key].length) return [];
-    const feed = pick(feeds[key]);
-    const f = await getJSON(B + "app.bsky.feed.getFeed?" + qs({ feed, limit: "100", ...(cursors[feed] ? { cursor: cursors[feed] } : {}) }));
-    cursors[feed] = f.cursor;                                      // next time, further back in time
-    const BSKY_BAD = /porn|sexual|nudity|graphic-media|gore|self-harm|spam|!hide|!warn|!no-unauthenticated/;
-    const out = [];
-    for (const { post: p } of f.feed || []) {
-      if (!p || (p.labels || []).some(l => BSKY_BAD.test(l.val)) || (p.author?.labels || []).some(l => BSKY_BAD.test(l.val))) continue;
-      const imgs = p.embed?.images || p.embed?.media?.images || [];
-      for (const i of imgs) out.push({ u: i.fullsize, o: i.thumb, t: clip(p.record?.text, 90), a: p.author?.displayName || p.author?.handle,
-        k: `https://bsky.app/profile/${p.author?.handle}/post/${String(p.uri).split("/").pop()}` });
-    }
-    return out;
-  }},
-
-  tumblr: { name: "Tumblr", weight: 2, async search(term) {
-    const before = Math.floor(Date.now() / 1000 - Math.random() * 12 * 365 * 86400);
-    const d = await jsonp("https://api.tumblr.com/v2/tagged?" + qs({ tag: term.toLowerCase(), api_key: KEYS.tumblr, limit: "20", before: String(before) }));
-    const out = [];
-    for (const p of Array.isArray(d.response) ? d.response : []) {
-      if (p.is_nsfw || p.blog?.is_nsfw || (p.tags || []).some(t => BAD.test(t))) continue;
-      const urls = [];
-      for (const ph of p.photos || []) { const s = (ph.alt_sizes || []).find(x => x.width <= W) || ph.original_size; if (s?.url) urls.push(s.url); }
-      const html = [p.body, p.caption, ...(p.trail || []).map(t => t.content_raw || t.content)].filter(Boolean).join(" ");
-      if (html) new DOMParser().parseFromString(html, "text/html").querySelectorAll("img").forEach(i => { const u = i.getAttribute("src"); if (u && /^https?:/.test(u)) urls.push(u); });
-      for (const u of urls) out.push({ u: https(u), t: clip(strip(p.summary || p.caption), 90) || "#" + term, a: p.blog_name, k: p.post_url });
-    }
-    return out;
-  }},
-
-  lemmy: { name: "Lemmy", weight: 1, async search(term) {
-    const d = await fromServers(LEMMY, "/api/v3/search?" + qs({ q: term, type_: "Posts", listing_type: "All",
-      sort: pick(["TopAll", "New", "Old", "TopYear"]), page: String(1 + rint(3)), limit: "50" }));
-    return (d.posts || []).filter(p => p.post && !p.post.nsfw && !p.community?.nsfw && !BAD.test(p.post.name)
-      && (/^image\/(jpeg|png|webp)/.test(p.post.url_content_type || "") || /\.(jpe?g|png|webp)(\?|$)/i.test(p.post.url || "")))
-      .map(p => ({ u: https(p.post.url), o: p.post.thumbnail_url, t: p.post.name, a: p.creator?.display_name || p.creator?.name, k: p.post.ap_id }));
-  }}
-};
-const titles = {}, feeds = {}, cursors = {};
-const BSKY_QUERIES = ["protest", "activism", "direct action", "strike", "riot", "antifa", "acab", "solidarity", "revolution", "resistance",
-  "no kings", "palestine", "climate justice", "labor movement", "union", "uprising", "occupy", "abolition", "anarchist", "manif", "huelga"];
-const FEED_OK = /protest|activis|direct action|strike|riot|resist|revolution|antifa|anarch|demo|manif|huelga|sciopero|occup|uprising|march|acab|1312|solidarity|abolition|no kings|palestin|climate justice|labou?r movement|union/i;
-const SOCIAL = new Set(["mastodon", "tumblr", "bluesky", "lemmy"]);
-// Numbers and short acronyms (1312, CRS, TOMA...) mean something only as hashtags or encyclopedia entries
-const wordFits = (k, t) => SOCIAL.has(k) || /^(ACAB|EZLN|ZAD)$/.test(t) ||
-  (!/^\d+$/.test(t) && (k === "wikipedia" || !/^[\p{Lu}\d.]{2,5}$/u.test(t)));
-
-function wikiImages(d, minW = 0) {
-  const out = [];
-  for (const p of Object.values(d.query?.pages || {})) {
-    const ii = p.imageinfo?.[0];
-    if (!ii || !/^image\/(jpeg|png|webp)/.test(ii.mime) || NOT_PHOTO.test(p.title) || BAD.test(p.title)) continue;
-    if (minW && ii.width && ii.width < minW) continue;
-    const em = ii.extmetadata || {};
-    out.push({ u: (ii.thumburl || ii.url).split("?")[0], o: ii.thumburl ? ii.url.split("?")[0] : null,
-               t: p.title.replace(/^[^:]+:/, "").replace(/\.[a-z0-9]+$/i, "").replace(/_/g, " "),
-               a: strip(em.Artist?.value).slice(0, 80), l: strip(em.LicenseShortName?.value), k: ii.descriptionurl });
-  }
-  return out;
-}
-
-/* ============================================================
-   THE POOL — grows forever, and is kept in this browser between visits
-   ============================================================ */
-const POOL_KEY = "PROTEST!pool", SEEN_KEY = "PROTEST!seen", KEEP = 4000, MAX = 30000;
-const pool = [], have = new Set();
-let deck = [], dirty = false;
-
-function add(it, src) {
-  if (!it || !it.u || have.has(it.u) || BAD.test(it.t || "")) return false;
-  have.add(it.u);
-  const item = { u: it.u, o: it.o && it.o !== it.u ? it.o : null, t: clip(it.t, 90), a: clip(it.a, 60), l: clip(it.l, 24), k: it.k || "", s: it.s || src,
-                 keep: SOURCES[src]?.keep !== false };
-  pool.push(item);
-  deck.splice(rint(deck.length + 1), 0, item);
-  if (pool.length > MAX) { const old = pool.splice(rint(pool.length / 2), 1)[0]; have.delete(old.u); }
-  dirty = true;
-  return true;
-}
-function drop(item) {
-  const i = pool.indexOf(item);
-  if (i > -1) { pool.splice(i, 1); dirty = true; }
-}
-function save() {
-  if (!dirty) return;
-  dirty = false;
-  const keep = pool.filter(i => i.keep);
-  const list = keep.length > KEEP ? shuffle(keep.slice()).slice(0, KEEP) : keep;
-  const data = JSON.stringify(list.map(i => [i.u, i.o, i.t, i.a, i.l, i.k, i.s]));
-  try { localStorage.setItem(POOL_KEY, data); }
-  catch (e) { try { localStorage.setItem(POOL_KEY, JSON.stringify(list.slice(0, KEEP / 4).map(i => [i.u, i.o, i.t, i.a, i.l, i.k, i.s]))); } catch (e2) {} }
-}
-const seen = [];
-function logSeen(it) {
-  seen.push([it.t, it.a, it.l, it.k, it.s, Date.now()]);
-  if (seen.length > 50) flushSeen();
-}
-function flushSeen() {
-  if (!seen.length) return;
-  try {
-    const old = JSON.parse(localStorage.getItem(SEEN_KEY) || "[]");
-    localStorage.setItem(SEEN_KEY, JSON.stringify(old.concat(seen.splice(0)).slice(-1500)));
-  } catch (e) { seen.length = 0; }
-}
-
-/* ============================================================
-   THE HUNT — never stops: a random source, a random language, a random word
-   ============================================================ */
-const stats = {};                  // read with ?debug
-const dead = new Set();            // source|language|word that gave nothing
-const rest = {};                   // a source that fails rests for a while
-const fails = {};
-function chooseSource() {
-  const list = Object.entries(SOURCES).filter(([k]) => !(rest[k] > Date.now()));
-  let r = Math.random() * list.reduce((s, [, v]) => s + v.weight, 0);
-  for (const [k, v] of list) if ((r -= v.weight) <= 0) return k;
-  return list.length ? list[0][0] : null;
-}
-// On social networks the short, widespread hashtags work best: English and the movements weigh more there
-const TAG_WEIGHT = { en: 4, x: 6, it: 1.5, fr: 1.5, es: 1.5, pt: 1.5, de: 1.5 };
-function chooseWord(k) {
-  const langs = SOURCES[k].langs || LANGS;
-  const social = SOCIAL.has(k), weight = (l) => (social ? TAG_WEIGHT[l] : LANG_WEIGHT[l]) || 1;
-  for (let tries = 0; tries < 12; tries++) {
-    let r = Math.random() * langs.reduce((s, l) => s + weight(l), 0), lang = langs[0];
-    for (const l of langs) if ((r -= weight(l)) <= 0) { lang = l; break; }
-    const term = pick(TERMS[lang]);
-    if (social && term.split(/\s+/).length > 3) continue;
-    if (wordFits(k, term) && !dead.has(k + "|" + lang + "|" + term)) return [lang, term];
+/* ---------- dates written in category names and in the photographs' data ---------- */
+// A month counts only next to a year ("October 2026", "octubre de 2026") or a day ("17 octobre"),
+// so that "Women's March", "Plaza de Mayo" or "Mai 68" are not read as dates
+const MONTHS = ["january|janvier|gennaio|enero|januar|janeiro|gener|stycznia", "february|février|fevrier|febbraio|febrero|februar|fevereiro|febrer|lutego|feb",
+  "marzo|märz|marz|março|març", "april|avril|aprile|abril|kwietnia|apr", "maggio|maio|maig",
+  "june|juin|giugno|junio|juni|junho|juny|czerwca|jun", "july|juillet|luglio|julio|juli|julho|juliol|lipca|jul", "august|août|aout|agosto|agost|sierpnia|aug",
+  "september|septembre|settembre|septiembre|setembro|setembre|września|sept|sep", "october|octobre|ottobre|octubre|oktober|outubro|października|oct|okt",
+  "november|novembre|noviembre|novembro|listopada|nov", "december|décembre|decembre|dicembre|diciembre|dezember|dezembro|desembre|grudnia|dec|dez"]
+  .map(s => [new RegExp("(?:^|[^\\p{L}])(?:" + s + ")\\.?[\\s,]*(?:de\\s+|del\\s+|of\\s+)?(20\\d\\d)\\b", "iu"),
+             new RegExp("\\b[0-3]?\\d(?:st|nd|rd|th|er|e|º|°)?\\.?\\s*(?:de\\s+|d'|of\\s+)?(?:" + s + ")(?:[^\\p{L}]|$)", "iu")]);
+function dateIn(text) {
+  const t = String(text || "");
+  let m = t.match(/\b(20\d\d)[-_.\/: ]?([01]\d)(?:[-_.\/: ]?([0-3]\d))?/);
+  if (m && +m[2] >= 1 && +m[2] <= 12) return Date.UTC(+m[1], +m[2] - 1, m[3] && +m[3] >= 1 && +m[3] <= 31 ? +m[3] : 15);
+  m = t.match(/\b([0-3]?\d)[-.\/]([01]?\d)[-.\/](20\d\d)\b/);
+  if (m && +m[2] >= 1 && +m[2] <= 12) return Date.UTC(+m[3], +m[2] - 1, +m[1]);
+  const y = t.match(/\b(20\d\d)\b/);
+  if (!y) return null;
+  for (let i = 0; i < 12; i++) {
+    const a = t.match(MONTHS[i][0]);
+    if (a) return Date.UTC(+a[1], i, 15);
+    if (MONTHS[i][1].test(t)) return Date.UTC(+y[1], i, 15);
   }
   return null;
 }
-async function hunt() {
-  const k = chooseSource();
-  if (!k) return 0;
-  const w = chooseWord(k);
-  if (!w) return 0;
-  const [lang, term] = w;
-  const st = stats[k] = stats[k] || { q: 0, found: 0, added: 0, empty: 0, err: 0, shown: 0, broken: 0, last: "" };
-  st.q++;
-  try {
-    const items = await Promise.race([SOURCES[k].search(term, lang), sleep(30000).then(() => { throw new Error("slow"); })]);
-    fails[k] = 0;
-    let n = 0;
-    for (const it of shuffle((items || []).slice()).slice(0, 30)) if (add(it, k)) n++;   // no source floods the others
-    if (!items || !items.length) { dead.add(k + "|" + lang + "|" + term); st.empty++; }
-    st.found += (items || []).length; st.added += n; st.last = lang + ": " + term + " → " + n;
-    if (n) fill();
-    return n;
-  } catch (e) {
-    st.err++; st.last = lang + ": " + term + " ✗ " + String(e.message || e).slice(0, 60);
-    fails[k] = (fails[k] || 0) + 1;
-    rest[k] = Date.now() + Math.min(30 * 60e3, 20e3 * 2 ** fails[k]);
-    return 0;
-  }
+const otherYearsOnly = (t) => { const ys = (t.match(/\b(19\d\d|20\d\d)\b/g) || []).map(Number); return ys.length > 0 && !ys.some(y => YEARS.includes(y)); };
+const NOT_PHOTO = /\b(map|mappa|carte|karte|logo|flag of|coat of arms|diagram|chart|graph|poster template)\b/i;
+const PER_EVENT = 40;               // no single event takes over the stream
+const NOT_PROTEST = (name) => /congr[eèé]s|conference|konferenz|exhibition|exposition|ceremony|cérémonie/i.test(name) ||
+  (/\bpride\b|christopher street|\bcsd\b/i.test(name) && !/protest|manif|demo/i.test(name));
+const strip = (h) => String(h || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const rint = (n) => Math.floor(Math.random() * n);
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = rint(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+/* ---------- the pool ---------- */
+const pool = [], have = new Set();
+let deck = [], dirty = false;
+function add(it) {
+  if (!it || !it.u || have.has(it.u) || !(it.w >= START)) return;
+  have.add(it.u); pool.push(it);
+  deck.splice(rint(deck.length + 1), 0, it);
+  dirty = true;
 }
-async function hunter(first) {
-  if (first) await sleep(rint(400));
-  for (;;) {
-    if (document.hidden) { await sleep(5000); continue; }
-    await hunt();
-    await sleep(pool.length < 300 ? 150 : pool.length < 3000 ? 1500 + rint(2500) : 4000 + rint(6000));
-  }
+function drop(it) { const i = pool.indexOf(it); if (i > -1) { pool.splice(i, 1); dirty = true; } }
+function save(t) {
+  try { localStorage.setItem(KEY, JSON.stringify({ t, p: pool.map(i => [i.u, i.o, i.t, i.a, i.l, i.k, i.w]) })); dirty = false; } catch (e) {}
+}
+const seen = [];
+function flushSeen() {
+  if (!seen.length) return;
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify(JSON.parse(localStorage.getItem(SEEN_KEY) || "[]").concat(seen.splice(0)).slice(-1500))); }
+  catch (e) { seen.length = 0; }
 }
 
-/* ============================================================
-   THE STREAM
-   ============================================================ */
+/* ---------- the search: every protest category of these months, all the way down ---------- */
+async function api(p) {
+  for (let i = 0; i < 4; i++) {
+    try { return JSON.parse(await (await fetch(API + new URLSearchParams({ format: "json", formatversion: "2", origin: "*", ...p }))).text()); }
+    catch (e) { await sleep(15000 * (i + 1)); }       // the archive asks to slow down
+  }
+  crawlOk = false;
+  return {};
+}
+let crawling = false, crawlOk = true;
+async function crawl() {
+  if (crawling) return;
+  crawling = true;
+  const seenCats = new Set(), queue = ROOTS.map(c => [c, 0, false]), fresh = new Set();
+  crawlOk = true;
+  let active = 0;
+  const worker = async () => {
+    while (queue.length || active) {
+      if (!queue.length) { await sleep(300); continue; }
+      const [c, depth, inWindow] = queue.shift();
+      if (seenCats.has(c)) continue;
+      seenCats.add(c);
+      active++;
+      let cont = {}, taken = 0;
+      do {
+        const r = await api({ action: "query", generator: "categorymembers", gcmtitle: c, gcmtype: "subcat|file", gcmlimit: "500",
+          prop: "imageinfo", iiprop: "url|mime|size|extmetadata", iiextmetadatafilter: "DateTimeOriginal|Artist|LicenseShortName", iiurlwidth: String(W), ...cont });
+        const found = [];
+        for (const pg of (r.query && r.query.pages) || []) {
+          if (pg.ns === 14) {
+            const name = pg.title.replace(/^Category:/, ""), d = dateIn(name);
+            if (depth >= 6 || otherYearsOnly(name) || NOT_PROTEST(name) || (d != null && (d < START - 20 * 864e5 || d > END))) continue;
+            queue.push([pg.title, depth + 1, inWindow || d != null]);
+            continue;
+          }
+          const ii = pg.imageinfo && pg.imageinfo[0];
+          if (!ii || !/^image\/(jpeg|png|webp)$/.test(ii.mime) || ii.width < 500 || NOT_PHOTO.test(pg.title)) continue;
+          const em = ii.extmetadata || {};
+          let when = dateIn(strip(em.DateTimeOriginal && em.DateTimeOriginal.value));
+          if (when == null) when = dateIn(pg.title);
+          if (when == null) { if (!inWindow) continue; when = NOW; }
+          if (when < START || when > END) continue;
+          const thumb = (ii.thumburl || ii.url).split("?")[0], orig = ii.url.split("?")[0];
+          found.push({ u: thumb, o: thumb !== orig ? orig : null, t: pg.title.replace(/^File:/, "").replace(/\.[a-z0-9]+$/i, "").replace(/_/g, " ").slice(0, 90),
+                a: strip(em.Artist && em.Artist.value).slice(0, 60), l: strip(em.LicenseShortName && em.LicenseShortName.value).slice(0, 24), k: ii.descriptionurl, w: when });
+        }
+        for (const it of shuffle(found).slice(0, Math.max(0, PER_EVENT - taken))) { fresh.add(it.u); add(it); taken++; }
+        fill();
+        cont = r.continue || null;
+        await sleep(100);
+      } while (cont);
+      active--;
+    }
+  };
+  await Promise.all([worker(), sleep(400).then(worker), sleep(800).then(worker)]);
+  if (crawlOk && fresh.size > 100) {           // a complete search replaces the old one: each time a new choice of 40 per event
+    for (const it of pool.slice()) if (!fresh.has(it.u)) { pool.splice(pool.indexOf(it), 1); have.delete(it.u); }
+    deck = shuffle(pool.slice());
+  }
+  lastCrawl = Date.now();
+  save(lastCrawl);
+  crawling = false;
+}
+let lastCrawl = 0;
+
+/* ---------- the stream: half a second each, steady ---------- */
 const stage = document.getElementById("s");
 const ready = [];
-let loading = 0, running = false;
-const MAX_READY = 8, MAX_LOADING = 6;
-
-function next() {
-  if (!deck.length) deck = shuffle(pool.slice());
-  return deck.pop();
-}
+let loading = 0, started = false;
+function next() { if (!deck.length) deck = shuffle(pool.slice()); return deck.pop(); }
 function fill() {
-  while (pool.length && loading < MAX_LOADING && ready.length + loading < MAX_READY) {
-    const it = next();
-    if (!it) break;
-    load(it);
-  }
+  while (pool.length && loading < 8 && ready.length + loading < 12) { const it = next(); if (!it) break; load(it); }
 }
 function load(it) {
   loading++;
   const im = new Image();
-  im.alt = ""; im.decoding = "async"; im.referrerPolicy = "no-referrer";
-  let tried = false, over = false;
+  im.alt = ""; im.decoding = "async";
+  let tried = false, over = false, timer;
   const finish = (ok) => {
     if (over) return; over = true; clearTimeout(timer); loading--;
-    const st = stats[String(it.s).split("/")[0]];
-    if (ok) { im._it = it; ready.push(im); if (st) st.shown++; if (!running) { running = true; tick(); } }
-    else { drop(it); if (st) st.broken++; }
+    if (ok) { im._it = it; ready.push(im); if (!started) { started = true; beat = performance.now(); tick(); } }
+    else drop(it);
     fill();
   };
   const fail = () => {
     if (!tried && it.o) { tried = true; clearTimeout(timer); timer = setTimeout(fail, 8000); im.src = it.o; return; }
     finish(false);
   };
-  let timer = setTimeout(fail, 8000);
+  timer = setTimeout(fail, 8000);
   im.onload = () => {
     if (im.naturalWidth * im.naturalHeight < 300 * 300) return finish(false);
     const ok = () => finish(true);
@@ -505,20 +186,22 @@ function load(it) {
   im.onerror = fail;
   im.src = it.u;
 }
+let beat = 0;
 function tick() {
   if (ready.length) {
     const im = ready.shift();
     stage.replaceChildren(im);
-    logSeen(im._it);
+    const it = im._it;
+    seen.push([it.t, it.a, it.l, it.k, "commons", Date.now()]);
     fill();
   }
-  setTimeout(tick, 1 + Math.random() * 999);
+  beat += STEP;
+  const now = performance.now();
+  if (beat < now - STEP) beat = now + STEP;          // after a pause (hidden tab) the beat starts again
+  setTimeout(tick, beat - now);
 }
 
-/* ============================================================
-   GO
-   ============================================================ */
-// A handful of photographs so the stream starts at once, the first time
+/* ---------- go ---------- */
 const UP = "https://upload.wikimedia.org/wikipedia/commons/";
 const SEED = `2/24/Protests_in_Tirana%2C_Albania%2C_October_2026.jpg
 f/fb/Protests_in_Tirana%2C_Albania%2C_October_2026_%2829636%29.jpg
@@ -532,8 +215,6 @@ d/da/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Pari
 8/81/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_du_6_octobre_2026_%C3%A0_Paris_058.jpg
 9/92/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_%C3%A0_Aix-en-Provence_-_13_octobre_2026_03.jpg
 c/c6/Manifestation_lyc%C3%A9enne_et_%C3%A9tudiante_-_place_Lucien_Paye_%C3%A0_Aix-en-Provence_-_13_octobre_2026_19.jpg
-4/40/26S-Manifestaci%C3%B3n_por_la_vivienda--01.jpg
-c/c8/Homenaje-maricarmen-tol-eress%C3%ABa-10.jpg
 8/8f/Madrid_-_Demonstration_for_the_right_to_housing_-_Fight_for_what_is_yours_-_261008_201505.jpg
 3/31/Madrid_-_Demonstration_We_defend_public_education%2C_we_defend_the_future_-_261014_195439.jpg
 6/6f/2026-10-17_10-08-51_Manif-Belfort.jpg
@@ -541,21 +222,25 @@ d/d8/Lyon_2e_-_Rue_de_la_R%C3%A9publique_-_Sous_les_gaz_lacrymog%C3%A8nes%2C_pen
 4/4a/Lyon_2e_-_Rue_du_Pr%C3%A9sident_%C3%89douard_Herriot_-_Feu_au_milieu_de_la_route_pendant_les_manifestations_du_17_octobre_2026.jpg
 1/19/Office_du_tourisme_incendi%C3%A9_%28Lyon%2C_2026%29.jpg`.split("\n");
 
+let cache = null;
 try {
-  for (const r of JSON.parse(localStorage.getItem(POOL_KEY) || "[]")) if (SOURCES[String(r[6]).split("/")[0]]) add({ u: r[0], o: r[1], t: r[2], a: r[3], l: r[4], k: r[5], s: r[6] }, r[6]);
-  localStorage.removeItem("PROTEST!v2");     // the first version's archive
+  cache = JSON.parse(localStorage.getItem(KEY) || "null");
+  for (const k of ["PROTEST!pool", "PROTEST!v2"]) localStorage.removeItem(k);      // earlier versions
 } catch (e) {}
+if (cache && cache.p) for (const [u, o, t, a, l, k, w] of cache.p) add({ u, o, t, a, l, k, w });
 if (pool.length < 50) for (const p of SEED) {
   const name = p.slice(p.lastIndexOf("/") + 1);
   add({ u: UP + "thumb/" + p + "/" + W + "px-" + name, o: UP + p, t: decodeURIComponent(name).replace(/_/g, " "),
-        k: "https://commons.wikimedia.org/wiki/File:" + name }, "commons");
+        k: "https://commons.wikimedia.org/wiki/File:" + name, w: Date.UTC(2026, 9, 15) });
 }
 deck = shuffle(pool.slice());
 fill();
-hunter(true); hunter(true); hunter(true);
-setInterval(() => { save(); flushSeen(); }, 20000);
-if (/debug/.test(location.search)) window.PROTEST = { stats, pool, dead, rest, ready };
-addEventListener("pagehide", () => { save(); flushSeen(); });
+lastCrawl = cache && cache.t || 0;
+const age = NOW - lastCrawl;
+setTimeout(function again() { crawl().then(() => setTimeout(again, REFRESH)); }, age > REFRESH ? 0 : REFRESH - age);
+setInterval(() => { if (dirty) save(lastCrawl); flushSeen(); }, 20000);   // what is found is kept even if the page closes mid-search
+addEventListener("pagehide", flushSeen);
+if (/debug/.test(location.search)) window.PROTEST = { pool, ready, get crawling() { return crawling; } };
 })();
 </script>
 </body>
