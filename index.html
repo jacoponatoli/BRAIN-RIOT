@@ -267,13 +267,6 @@ const SOURCES = {
     return out;
   }},
 
-  aic: { name: "Art Institute of Chicago", weight: 1, langs: ["en", "x"], async search(term) {
-    const d = await getJSON("https://api.artic.edu/api/v1/artworks/search?" + qs({ q: term, fields: "id,title,image_id,artist_title,is_public_domain",
-      limit: "60", page: String(1 + rint(3)) }));
-    return (d.data || []).filter(a => a.image_id && a.is_public_domain).map(a => ({ u: `https://www.artic.edu/iiif/2/${a.image_id}/full/843,/0/default.jpg`,
-      t: a.title, a: a.artist_title, l: "CC0", k: `https://www.artic.edu/artworks/${a.id}` }));
-  }},
-
   pixabay: { name: "Pixabay", weight: 1, keep: false, langs: Object.keys(PIXABAY_LANG), async search(term, lang) {
     const base = { key: KEYS.pixabay, q: term, lang: PIXABAY_LANG[lang], image_type: "photo", safesearch: "true" };
     const n = await count("pb|" + lang + term, async () => (await getJSON("https://pixabay.com/api/?" + qs({ ...base, per_page: 3 }))).totalHits);
@@ -549,7 +542,7 @@ d/d8/Lyon_2e_-_Rue_de_la_R%C3%A9publique_-_Sous_les_gaz_lacrymog%C3%A8nes%2C_pen
 1/19/Office_du_tourisme_incendi%C3%A9_%28Lyon%2C_2026%29.jpg`.split("\n");
 
 try {
-  for (const r of JSON.parse(localStorage.getItem(POOL_KEY) || "[]")) add({ u: r[0], o: r[1], t: r[2], a: r[3], l: r[4], k: r[5], s: r[6] }, r[6]);
+  for (const r of JSON.parse(localStorage.getItem(POOL_KEY) || "[]")) if (SOURCES[String(r[6]).split("/")[0]]) add({ u: r[0], o: r[1], t: r[2], a: r[3], l: r[4], k: r[5], s: r[6] }, r[6]);
   localStorage.removeItem("PROTEST!v2");     // the first version's archive
 } catch (e) {}
 if (pool.length < 50) for (const p of SEED) {
