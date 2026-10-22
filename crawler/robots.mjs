@@ -3,19 +3,22 @@
 // Every three hours, next to the crawler, this script writes new scenes, has a machine imagine them
 // (Pollinations.AI, free: one image every 45 seconds), cuts away the logo and keeps the images
 // on the "robots" branch of the repository, with robots.json listing them for the page.
+// Scenes already imagined elsewhere (crawler/robots-seeds.json) are picked up first: they come back at once.
 //
 // Usage: node crawler/robots.mjs <folder of the robots branch> [minutes]
+//        node crawler/robots.mjs --seeds <n>      writes n new scenes to imagine elsewhere
 
 import fs from "node:fs";
 import path from "node:path";
-import sharp from "sharp";
 
-const OUT = process.argv[2] || "robots-out";
-const MINUTES = +(process.argv[3] || process.env.ROBOT_MINUTES || 25);
+const SEEDS = process.argv[2] === "--seeds";
+const OUT = SEEDS ? "" : process.argv[2] || "robots-out";
+const MINUTES = +(SEEDS ? 0 : process.argv[3] || process.env.ROBOT_MINUTES || 25);
 const DEADLINE = Date.now() + MINUTES * 60e3;
 const REPO = process.env.GITHUB_REPOSITORY || "jacoponatoli/PROTEST";
 const RAW = `https://raw.githubusercontent.com/${REPO}/robots/`;
 const CDN = `https://cdn.jsdelivr.net/gh/${REPO}@robots/`;
+const SEED_FILE = "crawler/robots-seeds.json";
 const MAX = 1200;                 // the oldest inventions give way to the new ones
 const GAP = 46e3;                 // the free limit: one image every 45 seconds
 
@@ -110,22 +113,26 @@ function scene() {
 }
 
 /* ---------------- the machine ---------------- */
-async function imagine(text, look) {
-  const [w, h] = pick(SIZES);
-  const seed = 1 + rint(2 ** 31 - 2);
+function invent() {                                               // a new scene, and the address where the machine imagines it
+  const text = scene(), look = pick(LOOK), [w, h] = pick(SIZES), seed = 1 + rint(2 ** 31 - 2);
   const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(`${text}, ${look}, photorealistic, a riot`) +
     "?" + new URLSearchParams({ width: String(w), height: String(h), seed: String(seed), nologo: "true", safe: "true" });
-  const r = await fetch(url, { headers: { "User-Agent": "RIOT-art-project/1.0 (https://jacoponatoli.github.io/PROTEST/)" }, signal: AbortSignal.timeout(150e3) });
+  return { url, text, look, seed };
+}
+let sharp;
+async function imagine(url, timeout) {
+  const r = await fetch(url, { headers: { "User-Agent": "RIOT-art-project/1.0 (https://jacoponatoli.github.io/PROTEST/)" }, signal: AbortSignal.timeout(timeout) });
   const type = r.headers.get("content-type") || "";
   if (!r.ok || !type.startsWith("image/")) {
     const body = (await r.text().catch(() => "")).slice(0, 300);
     const wait = /retry after (\d+)/i.exec(body);
     const err = new Error("HTTP " + r.status + " " + body.replace(/\s+/g, " ").slice(0, 140));
-    err.wait = wait ? (+wait[1] + 3) * 1000 : 0;
+    err.wait = wait ? (+wait[1] + 2) * 1000 : r.status === 402 || r.status === 429 ? GAP : 0;
     throw err;
   }
   const buf = Buffer.from(await r.arrayBuffer());
   if (buf.length < 15000) throw new Error("too small: " + buf.length);
+  sharp ||= (await import("sharp")).default;
   const img = sharp(buf);
   const m = await img.metadata();
   const cut = Math.max(40, Math.round(m.height * 0.07));          // the logo sits in the bottom right corner
@@ -133,7 +140,12 @@ async function imagine(text, look) {
     .jpeg({ quality: 84, mozjpeg: true }).toBuffer();
   const stats = await sharp(out).stats();
   if (stats.channels.slice(0, 3).every((c) => c.max - c.min < 20)) throw new Error("blank image");
-  return { out, seed, w: m.width, h: m.height - cut };
+  return { out, w: m.width, h: m.height - cut };
+}
+
+if (SEEDS) {                                                      // scenes for a browser to imagine
+  console.log(JSON.stringify(Array.from({ length: +(process.argv[3] || 30) }, invent), null, 0));
+  process.exit(0);
 }
 
 /* ---------------- go ---------------- */
@@ -142,30 +154,52 @@ const FILE = path.join(OUT, "robots.json");
 let data = { items: [] };
 try { data = JSON.parse(fs.readFileSync(FILE, "utf8")); } catch (e) {}
 data.items ||= [];
-const report = { at: new Date().toISOString(), made: 0, failed: 0, errors: [] };
+data.seeds ||= {};                                                // seed -> tries, for the scenes imagined elsewhere
+const report = { at: new Date().toISOString(), harvested: 0, made: 0, failed: 0, errors: [] };
+const fail = (e) => {
+  report.failed++;
+  report.errors.push(String(e.message || e).slice(0, 160));
+  if (report.errors.length > 20) report.errors.shift();
+  console.log("!", String(e.message || e).slice(0, 160));
+};
+const keep = (s, out, w, h) => {
+  const name = Date.now().toString(36) + "-" + s.seed.toString(36) + ".jpg";
+  fs.writeFileSync(path.join(OUT, "img", name), out);
+  data.items.push([RAW + "img/" + name, CDN + "img/" + name, "Invented riot: " + s.text, "imagined by a machine (Pollinations.AI) for RIOT!",
+    "invented", RAW + "img/" + name, "RIOT! robots", new Date().getUTCFullYear(), "robots", s.look, w, h]);
+  console.log("+", name, s.text.slice(0, 90));
+};
 
-let last = 0;
-while (Date.now() + 160e3 < DEADLINE) {
-  const wait = last + GAP - Date.now();
-  if (wait > 0) await sleep(wait);
-  last = Date.now();
-  const text = scene(), look = pick(LOOK);
+// 1. the scenes already imagined elsewhere come back at once
+let seeds = [];
+try { seeds = JSON.parse(fs.readFileSync(SEED_FILE, "utf8")); } catch (e) {}
+for (const s of seeds) {
+  const k = String(s.seed);
+  if (data.seeds[k] === "done" || data.seeds[k] >= 3 || Date.now() + 200e3 > DEADLINE) continue;
   try {
-    const { out, seed, w, h } = await imagine(text, look);
-    const name = Date.now().toString(36) + "-" + seed.toString(36) + ".jpg";
-    fs.writeFileSync(path.join(OUT, "img", name), out);
-    const title = "Invented riot: " + text;
-    data.items.push([RAW + "img/" + name, CDN + "img/" + name, title, "imagined by a machine (Pollinations.AI) for RIOT!",
-      "invented", RAW + "img/" + name, "RIOT! robots", new Date().getUTCFullYear(), "robots", look, w, h]);
+    const { out, w, h } = await imagine(s.url, 30e3);
+    keep(s, out, w, h);
+    data.seeds[k] = "done";
+    report.harvested++;
+  } catch (e) { data.seeds[k] = (+data.seeds[k] || 0) + 1; fail(e); }
+  await sleep(1000);
+}
+
+// 2. new scenes, patiently: the free machine answers when it can
+let next = Date.now(), streak = 0;
+while (Date.now() + 100e3 < DEADLINE) {
+  if (next > Date.now()) await sleep(next - Date.now());
+  const s = invent();
+  try {
+    const { out, w, h } = await imagine(s.url, 75e3);
+    keep(s, out, w, h);
     report.made++;
-    console.log("+", name, text.slice(0, 90));
+    streak = 0;
+    next = Date.now() + GAP;
   } catch (e) {
-    report.failed++;
-    report.errors.push(String(e.message || e).slice(0, 160));
-    if (report.errors.length > 20) report.errors.shift();
-    console.log("!", String(e.message || e).slice(0, 160));
-    if (e.wait) last = Date.now() + e.wait - GAP;
-    if (report.failed > 12 && report.made === 0) break;           // the machine does not answer today
+    fail(e);
+    next = Date.now() + Math.max(e.wait || 15e3, 10e3);
+    if (++streak > 120) break;                                    // the machine does not answer today
   }
 }
 
