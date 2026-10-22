@@ -25,11 +25,11 @@ const YEAR = new Date().getUTCFullYear();
 const DAY = 864e5;
 
 /* ---------------- words ---------------- */
-export const RIOT = /\briot|émeut|emeut|\bunrest|scontri|disordini|guerriglia|tafferugli|sommoss|\bclash|affrontement|enfrentamiento|disturbios|krawall|ausschreitung|stra(ß|ss)enschlacht|stra(ß|ss)enkampf|tear ?gas|lacrymog|lacrimog|tränengas|lachrymat|pepper spray|water cannon|canon à eau|idrant|wasserwerfer|barricad|barrikad|molotov|black ?bloc|schwarzer block|\bCRS\b|\bBRAV|gendarmerie mobile|\bcelere\b|antidisturbios|police charge|cariche|charge policière|kettl|\bnasse\b|\bLBD\b|rubber bullet|caoutchouc|flash-?ball|grenade|incendi|burning|brûl|en feu|on fire|\bfires?\b|\bfeu\b|looting|looted|pillage|pillé|saccheggi|saqueo|vandal|dégradation|smashed|broken window|vitrine|police violence|violences policières|police brutality|stone[- ]?throw|jet de pierre|sassaiola|pyrotechn|fumigène|fumogen|smoke bomb|mortier|insurrection|uprising|riot police|bereitschaftspolizei|омон|\bomon\b|беспорядк|\barrest|interpellation|arrestat|detenid|confrontation|暴動|騷亂|骚乱|衝突|冲突|催淚|催泪|鎮暴|镇暴|폭동|최루|暴動|機動隊|اشتباك|قنابل الغاز|شغب/i;
+export const RIOT = /\briot|émeut|emeut|\bunrest|scontri|disordini|guerriglia|tafferugli|sommoss|\bclash|affrontement|enfrentamiento|disturbios|krawall|ausschreitung|stra(ß|ss)enschlacht|stra(ß|ss)enkampf|tear ?gas|lacrymog|lacrimog|tränengas|lachrymat|pepper spray|water cannon|canon à eau|idrant|wasserwerfer|barricad|barrikad|molotov.?(cocktail|bomb)|cocktails? molotov|molotow|black ?bloc|schwarzer block|\bCRS\b|\bBRAV|gendarmerie mobile|\bcelere\b|antidisturbios|police charge|cariche|charge policière|kettl|\bnasse\b|\bLBD\b|rubber bullet|caoutchouc|flash-?ball|grenade|incendi|burning|brûl|en feu|on fire|\bfires?\b|\bfeu\b|looting|looted|pillage|pillé|saccheggi|saqueo|vandal|dégradation|smashed|broken window|vitrine|police violence|violences policières|police brutality|stone[- ]?throw|jet de pierre|sassaiola|pyrotechn|fumigène|fumogen|smoke bomb|mortier|insurrection|uprising|riot police|bereitschaftspolizei|омон|\bomon\b|беспорядк|\barrest|interpellation|arrestat|detenid|confrontation|暴動|騷亂|骚乱|衝突|冲突|催淚|催泪|鎮暴|镇暴|폭동|최루|暴動|機動隊|اشتباك|قنابل الغاز|شغب/i;
 export const POLICE = /police|polizia|polic[ií]a|pol[ií]cia|polizei|politie|carabinieri|gendarm|guardia civil|mossos|policja|полиция|полиці|\bcops?\b|national guard|警察|경찰|شرطة/i;
 // riot words that mean something else
 const NOT_RIOT = /riot games|league of legends|valorant|riot fest|riot grrrl|quiet riot|riot act|riotfest|lol esports|esport|videogame|video game|cosplay|concert|festival|\bband\b|album|carnival|fireworks? display|campfire|bonfire|fireplace|fire ?station|fire ?engine|fire ?brigade|firefighting training|forest fire|wildfire|bushfire/i;
-const NOT_PHOTO = /\b(map|mappa|carte|karte|locator|logo|flag of|coat of arms|diagram|chart|graph|signature|plaque|grave|tomb|stolperstein|bust of|stamp|coin|medal|banknote|newspaper|front page|manuscript|seal of)\b|\.svg|\.pdf|\.tiff?$/i;
+const NOT_PHOTO = /\b(map|mappa|carte|karte|locator|logo|flag of|coat of arms|diagram|chart|graph|signature|plaque|grave|tomb|stolperstein|bust of|stamp|coin|medal|banknote|newspaper|front page|manuscript|seal of|exhibition|ausstellung|sculpt\w*)\b|展覽|展覧|人權展|\.svg|\.pdf|\.tiff?$/i;
 const NOT_CATEGORY = /congr[eèé]s|conference|konferenz|exhibition|exposition|ceremony|cérémonie|videos? of|maps? of|logos?\b|portraits? of|people associated|graves?\b|memorials?\b|monuments?\b|commemorat|anniversar|films? about|books? about|songs? about|works about|literature|in fiction|sound recordings|audio|documents|newspapers|stamps|coins|medals|posters|museum|collections of|signatures|quality images|featured pictures|valued images|uploaded by|taken with|files by|^people of|police officers of|politicians|elections?\b/i;
 const NOT_PRIDE = (n) => /\bpride\b|christopher street|\bcsd\b/i.test(n) && !/protest|riot|manif|demo|stonewall/i.test(n);
 
@@ -45,6 +45,8 @@ const timeLeft = () => DEADLINE - Date.now();
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
 let requests = 0;
+const report = { bySource: {}, errors: [] };
+const note = (what, msg) => { report.errors.push(what + ": " + String(msg).slice(0, 120)); if (report.errors.length > 30) report.errors.shift(); };
 async function get(url, { json = true, headers = {}, tries = 4 } = {}) {
   for (let i = 0; i < tries; i++) {
     requests++;
@@ -86,6 +88,7 @@ function add(it) {
   if (corpus.items.length < MAX_ITEMS) corpus.items.push(row);
   else { const j = rint(corpus.items.length); have.delete(corpus.items[j][0]); corpus.items[j] = row; }   // full: the corpus keeps changing
   added++;
+  report.bySource[it.s.split(" / ")[0]] = (report.bySource[it.s.split(" / ")[0]] || 0) + 1;
   return true;
 }
 
@@ -112,7 +115,7 @@ const FAMOUS = [   // riots and clashes that must be there from the start; [cate
   ["Protests against the G8 in Genoa (July 2001)", "all"], ["Carlo Giuliani", "all"], ["Barricades during Paris Commune", "all"],
   ["2005 riots in France", "all"], ["2011 riots in England", "all"], ["1992 Los Angeles riots", "all"], ["Watts riots", "all"],
   ["1967 Detroit riot", "all"], ["Stonewall riots", "all"], ["Poll tax riots", "all"], ["2008 Greek riots", "all"],
-  ["2023 Nahel Merzouk riots", "all"], ["Gwangju Uprising", "all"], ["Formosa Incident", "all"], ["Barricades", "all"], ["Police brutality", "all"],
+  ["2023 Nahel Merzouk riots", "all"], ["Gwangju Uprising", "all"], ["Formosa Incident", "all"], ["Barricades", "all"], ["Police brutality", "filter"],
   ["George Floyd protests", "filter"], ["Black Lives Matter", "filter"], ["Rallies in protest of the shooting of Michael Brown", "filter"],
   ["Sunflower Movement", "filter"], ["2024 Taiwanese legislative reform protests", "filter"],
   ["Demonstrations against extradition bill in Hong Kong, 2019", "filter"], ["Mouvement des gilets jaunes", "filter"], ["Euromaidan", "filter"],
@@ -141,7 +144,7 @@ async function seed() {
         log("wikidata", q, cats.length);
       }
       state.wikidataAt = Date.now();
-    } catch (e) { log("wikidata failed", e.message); }
+    } catch (e) { log("wikidata failed", e.message); note("wikidata", e.message); }
   }
   log("frontier seeded:", front.length - n0, "new, total", front.length);
 }
@@ -152,9 +155,10 @@ async function visit([c, mode, depth, event, prio]) {
   if (Date.now() - last < revisitAfter(name)) return;
   const ev = event || name;
   const riotHere = mode === "all" || RIOT.test(name);
+  const full = (perEvent[ev] || 0) >= PER_EVENT;   // this event has enough: only look for its sub-categories
   let cont = {}, found = [];
   do {
-    const d = await commons({ action: "query", generator: "categorymembers", gcmtitle: c, gcmtype: "subcat|file", gcmlimit: "500",
+    const d = await commons({ action: "query", generator: "categorymembers", gcmtitle: c, gcmtype: full ? "subcat" : "subcat|file", gcmlimit: "500",
       prop: "imageinfo", iiprop: "url|mime|size|extmetadata", iiurlwidth: String(W),
       iiextmetadatafilter: "DateTimeOriginal|Artist|LicenseShortName|Categories|ImageDescription", ...cont });
     for (const pg of (d.query && d.query.pages) || []) {
@@ -183,7 +187,7 @@ async function visit([c, mode, depth, event, prio]) {
     }
     cont = d.continue || null;
     await sleep(150);
-  } while (cont && timeLeft() > 60e3);
+  } while (cont && found.length < 600 && timeLeft() > 60e3);   // sub-categories come first; 600 photographs are enough to choose from
   state.visited[c] = Date.now();               // only once it has really been read
   let n = 0;
   for (const it of shuffle(found)) if (add(it)) n++;
@@ -191,7 +195,7 @@ async function visit([c, mode, depth, event, prio]) {
 }
 
 /* ---------------- other open collections ---------------- */
-const SEARCH_WORDS = ["riot", "riots", "riot police", "tear gas", "barricade", "barricades", "molotov", "black bloc", "police brutality", "clashes police",
+const SEARCH_WORDS = ["riot", "riots", "riot police", "tear gas", "barricade", "barricades", "molotov cocktail", "black bloc", "police brutality", "clashes police",
   "water cannon", "looting riot", "émeute", "émeutes", "barricades Paris", "scontri", "scontri polizia", "guerriglia urbana", "disturbios", "antidisturbios",
   "Krawall", "Krawalle", "Straßenschlacht", "Barrikade", "Aufstand", "insurrection", "uprising police", "riot Hong Kong", "riot Athens", "riot London",
   "riot Paris", "riot Los Angeles", "riot Chile", "riot Gezi", "teargas", "riotpolice", "blackbloc", "G8 Genova", "G20 Hamburg riot", "Exarchia riot"];
@@ -247,8 +251,25 @@ async function loc() {
 }
 
 /* ---------------- run ---------------- */
+function clean() {                         // every run, the corpus is read again with the filters of today
+  if (!state.migrated1) {                    // "Police brutality" is now read only for its clashes
+    corpus.items = corpus.items.filter(i => i[8] !== "Police brutality");
+    for (const f of front) if (f[3] === "Police brutality") f[1] = "filter";
+    delete state.visited["Category:Police brutality"];
+    state.migrated1 = true;
+  }
+  const before = corpus.items.length;
+  corpus.items = corpus.items.filter(i => !NOT_PHOTO.test(i[2] || "") && !NOT_RIOT.test((i[2] || "") + " " + (i[8] || "")) &&
+    (String(i[6]).startsWith("Wikimedia") || keepText(i[2] || "")));
+  have.clear(); for (const i of corpus.items) have.add(i[0]);
+  for (const k of Object.keys(perEvent)) delete perEvent[k];
+  for (const i of corpus.items) perEvent[i[8]] = (perEvent[i[8]] || 0) + 1;
+  log("cleaned", before - corpus.items.length);
+}
+
 async function main() {
   state.runs++;
+  clean();
   log("run", state.runs, "corpus", corpus.items.length, "frontier", front.length, "minutes", MINUTES);
   await seed();
   const others = [openverse, europeana, loc];
@@ -257,17 +278,18 @@ async function main() {
     step++;
     if (step % 6 === 0) {                     // now and then, another collection
       const f = others[(step / 6) % others.length | 0];
-      try { const [q, n] = await f(); log(f.name, JSON.stringify(q), "+" + n); } catch (e) { log(f.name, "failed", e.message); }
+      try { const [q, n] = await f(); log(f.name, JSON.stringify(q), "+" + n); report[f.name] = (report[f.name] || 0) + 1; } catch (e) { log(f.name, "failed", e.message); note(f.name, e.message); }
       continue;
     }
     const e = nextEntry();
     if (!e) { log("frontier empty"); break; }
     try { const n = await visit(e); visits++; if (n) log("+" + n, e[0].replace("Category:", "").slice(0, 90)); }
-    catch (err) { log("failed", e[0], err.message); front.push(e); inFront.add(e[0]); await sleep(10000); }
+    catch (err) { log("failed", e[0], err.message); note(e[0], err.message); front.push(e); inFront.add(e[0]); await sleep(10000); }
   }
   // forget old visits so that the state does not grow forever
   for (const [c, t] of Object.entries(state.visited)) if (Date.now() - t > 365 * DAY) delete state.visited[c];
   corpus.updated = new Date().toISOString();
+  state.lastRun = { at: corpus.updated, visits, requests, added, corpus: corpus.items.length, frontier: front.length, ...report };
   fs.writeFileSync(CORPUS, JSON.stringify(corpus));
   const sample = shuffle(corpus.items.slice()).slice(0, SAMPLE_SIZE);
   fs.writeFileSync(SAMPLE, JSON.stringify({ updated: corpus.updated, total: corpus.items.length, items: sample }));
