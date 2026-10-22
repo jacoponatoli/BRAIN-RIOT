@@ -19,13 +19,16 @@ html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden;cursor
 /* RIOT! — Jacopo Natoli, 2026
    Riots of the whole world and of every time: clashes with the police, barricades, tear gas, fires.
    A crawler walks further into the open archives every three hours (crawler/riot.mjs) and the corpus keeps growing;
-   the page shows it one photograph after another, half a second each. Credits: credits.html */
+   meanwhile a machine invents riots of robots, cyborgs and androids (crawler/robots.mjs): one image in five.
+   The page shows them one after another, half a second each. Credits: credits.html */
 (() => {
 "use strict";
 
 const STEP = 500;                                  // every image stays half a second
 const RELOAD = 30 * 60e3;                          // look at the corpus again every half hour
 const RAW = "https://raw.githubusercontent.com/jacoponatoli/PROTEST/main/";
+const BOTS = "https://raw.githubusercontent.com/jacoponatoli/PROTEST/robots/";
+const SHARE = 0.2;                                 // one image in five is an invented riot
 
 const rint = (n) => Math.floor(Math.random() * n);
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = rint(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
@@ -54,12 +57,31 @@ async function grow() {
   const c = await load("riot-corpus.json");
   if (c && c.items) { for (const r of c.items) add(r); fill(); }
 }
+const bots = [], botHave = new Set();               // the invented riots: robots, cyborgs, androids
+let botDeck = [];
+async function dream() {
+  try {
+    const r = await fetch(BOTS + "robots.json?v=" + Math.floor(Date.now() / 600e3), { cache: "no-cache" });
+    if (!r.ok) return;
+    for (const x of (await r.json()).items || []) {
+      if (!x || !x[0] || botHave.has(x[0])) continue;
+      botHave.add(x[0]);
+      const it = { u: x[0], o: x[1], t: x[2], a: x[3], l: x[4], k: x[5], s: x[6], b: 1 };
+      bots.push(it);
+      botDeck.splice(rint(botDeck.length + 1), 0, it);
+    }
+  } catch (e) {}
+}
 
 /* ---------- the stream: half a second each, steady ---------- */
 const stage = document.getElementById("s");
 const ready = [];
 let loading = 0, started = false, beat = 0;
-function next() { if (!deck.length) deck = shuffle(pool.slice()); return deck.pop(); }
+function next() {
+  if (bots.length && Math.random() < SHARE) { if (!botDeck.length) botDeck = shuffle(bots.slice()); return botDeck.pop(); }
+  if (!deck.length) deck = shuffle(pool.slice());
+  return deck.pop();
+}
 function fill() {
   while (pool.length && loading < 12 && ready.length + loading < 20) { const it = next(); if (!it) break; show(it); }
 }
@@ -71,7 +93,7 @@ function show(it) {
   const finish = (ok) => {
     if (over) return; over = true; clearTimeout(timer); loading--;
     if (ok) { im._it = it; ready.push(im); if (!started) { started = true; beat = performance.now(); tick(); } }
-    else { const i = pool.indexOf(it); if (i > -1) pool.splice(i, 1); }
+    else { const list = it.b ? bots : pool, i = list.indexOf(it); if (i > -1) list.splice(i, 1); }
     fill();
   };
   const fail = () => {
@@ -120,6 +142,8 @@ d/d8/Lyon_2e_-_Rue_de_la_R%C3%A9publique_-_Sous_les_gaz_lacrymog%C3%A8nes%2C_pen
 e/ec/Lyon_2e_-_Rue_de_la_Barre_-_Magasin_Citadium_pill%C3%A9_apr%C3%A8s_les_manifestations_du_17_octobre_2026.jpg
 1/19/Office_du_tourisme_incendi%C3%A9_%28Lyon%2C_2026%29.jpg`.split("\n");
 try { for (const k of ["PROTEST!pool", "PROTEST!v2", "PROTEST!recent", "PROTEST!riot"]) localStorage.removeItem(k); } catch (e) {}   // earlier versions
+dream();
+setInterval(dream, RELOAD);
 (async () => {
   const s = await load("riot-sample.json");
   if (s && s.items && s.items.length) for (const r of s.items) add(r);
@@ -134,7 +158,7 @@ try { for (const k of ["PROTEST!pool", "PROTEST!v2", "PROTEST!recent", "PROTEST!
 })();
 setInterval(flushSeen, 20000);
 addEventListener("pagehide", flushSeen);
-if (/debug/.test(location.search)) window.RIOT = { pool, ready };
+if (/debug/.test(location.search)) window.RIOT = { pool, ready, bots };
 })();
 </script>
 </body>
