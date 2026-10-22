@@ -28,3 +28,30 @@ jobs:
             git pull --rebase
             git push
           fi
+  robots:
+    # meanwhile a machine invents riots of robots and cyborgs; they live on the "robots" branch, without history
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: robots
+          path: robots-out
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save --prefix crawler sharp@0.33.5
+      - run: node crawler/robots.mjs robots-out 25
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd robots-out
+          if git rev-parse -q --verify HEAD >/dev/null 2>&1; then git checkout -q --orphan fresh; else rm -rf .git; git init -q -b fresh; fi
+          git config user.name "riot-bot"
+          git config user.email "riot-bot@users.noreply.github.com"
+          git add -A
+          git commit -q -m "RIOT!: the robots invent new riots"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/robots
