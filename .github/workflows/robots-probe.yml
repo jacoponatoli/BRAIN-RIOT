@@ -1,0 +1,57 @@
+name: "RIOT! — probe the machines"
+on: workflow_dispatch
+jobs:
+  pollinations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - run: |
+          echo "::notice::ip $(curl -s https://api.ipify.org)"
+          node -e '
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          const urls = [
+            "https://image.pollinations.ai/prompt/" + encodeURIComponent("humanoid robots and cyborgs throwing molotov cocktails at riot police behind a burning barricade, Genoa street, night, tear gas smoke, press photograph, 35mm, grainy, photojournalism") + "?width=1280&height=720&seed=4242&nologo=true&model=flux",
+          ];
+          for (let i = 0; i < 4; i++) urls.push("https://image.pollinations.ai/prompt/" + encodeURIComponent("robots rioting against police in the street, press photo " + i) + "?width=1024&height=576&seed=" + (91000 + i) + "&nologo=true");
+          (async () => {
+            for (const [i, u] of urls.entries()) {
+              const t = Date.now();
+              try {
+                const r = await fetch(u, { signal: AbortSignal.timeout(170000) });
+                const b = Buffer.from(await r.arrayBuffer());
+                console.log("::notice::pollinations " + i + " " + r.status + " " + r.headers.get("content-type") + " " + b.length + "B " + (Date.now() - t) + "ms " + (r.ok ? "" : b.toString().slice(0, 160).replace(/[\r\n]/g, " ")));
+              } catch (e) { console.log("::notice::pollinations " + i + " error " + e.message + " " + (Date.now() - t) + "ms"); }
+              await sleep(i ? 55000 : 2000);
+            }
+          })();'
+  horde:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - run: |
+          node -e '
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          const H = { "apikey": "0000000000", "Client-Agent": "RIOT-art-project:1.0:jacoponatoli", "Content-Type": "application/json" };
+          (async () => {
+            const t = Date.now();
+            try {
+              const r = await fetch("https://aihorde.net/api/v2/generate/async", { method: "POST", headers: H, body: JSON.stringify({
+                prompt: "humanoid robots and cyborgs throwing molotov cocktails at riot police behind a burning barricade, night, tear gas, press photograph, grainy 35mm",
+                params: { width: 768, height: 512, steps: 20, n: 1, sampler_name: "k_euler_a" }, nsfw: false, censor_nsfw: true, r2: true }) });
+              const j = await r.json();
+              console.log("::notice::horde submit " + r.status + " " + JSON.stringify(j).slice(0, 200));
+              if (!j.id) return;
+              for (let k = 0; k < 60; k++) {
+                await sleep(10000);
+                const c = await (await fetch("https://aihorde.net/api/v2/generate/check/" + j.id, { headers: H })).json();
+                if (k % 6 === 0) console.log("::notice::horde check " + JSON.stringify(c).slice(0, 200));
+                if (c.done) {
+                  const s = await (await fetch("https://aihorde.net/api/v2/generate/status/" + j.id, { headers: H })).json();
+                  const g = (s.generations || [])[0] || {};
+                  console.log("::notice::horde done in " + (Date.now() - t) + "ms model " + g.model + " img " + String(g.img).slice(0, 160));
+                  return;
+                }
+              }
+              console.log("::notice::horde not done after 10 min");
+            } catch (e) { console.log("::notice::horde error " + e.message); }
+          })();'
