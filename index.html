@@ -61,7 +61,7 @@ const ready = [];
 let loading = 0, started = false, beat = 0;
 function next() { if (!deck.length) deck = shuffle(pool.slice()); return deck.pop(); }
 function fill() {
-  while (pool.length && loading < 8 && ready.length + loading < 12) { const it = next(); if (!it) break; show(it); }
+  while (pool.length && loading < 12 && ready.length + loading < 20) { const it = next(); if (!it) break; show(it); }
 }
 function show(it) {
   loading++;
