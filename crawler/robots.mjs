@@ -35,8 +35,8 @@ const WHO = [
   "a pack of four-legged robot dogs",
   "a swarm of small six-wheeled delivery robots",
   "giant battered mech suits",
-  "humanoid robots in black hoodies and gas masks, black bloc",
-  "humanoid robots wearing yellow high-visibility vests",
+  "silver robots with visible joints and pistons, wearing torn black hoodies, black bloc",
+  "metal robots with exposed wiring wearing yellow high-visibility vests",
   "obsolete household robots and robot vacuum cleaners",
   "white plastic service robots from a shopping mall",
   "robots built from scrap metal, car doors and traffic signs",
@@ -84,7 +84,7 @@ const WHERE = [
   "Milan, Corso Buenos Aires", "Limoges, in front of the burning town hall", "Bogotá", "Dhaka", "Kathmandu, 2025",
   "Tbilisi, Rustaveli Avenue", "Belgrade", "Tokyo, Shinjuku, 1968", "Valle Giulia, Rome, 1968", "Stonewall Inn, New York, 1969",
   "Caracas", "Barcelona, Via Laietana", "Berlin, Kreuzberg, May Day", "Ferguson, Missouri", "Colombo, 2022", "Sainte-Soline, in the fields",
-  "a shopping street of a city of the future", "the parking lot of a robot factory", "a motorway toll gate",
+  "a shopping street of a city of the future", "the parking lot of a robot factory",
 ];
 const WHEN = [
   "at night", "at dawn", "in pouring rain", "at dusk under orange streetlights", "in the snow", "under a hard summer sun",
@@ -115,7 +115,7 @@ function scene() {
 /* ---------------- the machine ---------------- */
 function invent() {                                               // a new scene, and the address where the machine imagines it
   const text = scene(), look = pick(LOOK), [w, h] = pick(SIZES), seed = 1 + rint(2 ** 31 - 2);
-  const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(`${text}, ${look}, photorealistic, a riot`) +
+  const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(`robot riot: ${text}, ${look}, the rioters are clearly machines with metal bodies, photorealistic`) +
     "?" + new URLSearchParams({ width: String(w), height: String(h), seed: String(seed), nologo: "true", safe: "true" });
   return { url, text, look, seed };
 }
