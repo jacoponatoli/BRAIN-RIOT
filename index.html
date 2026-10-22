@@ -78,7 +78,7 @@ const stage = document.getElementById("s");
 const ready = [];
 let loading = 0, started = false, beat = 0;
 function next() {
-  if (bots.length && Math.random() < SHARE) { if (!botDeck.length) botDeck = shuffle(bots.slice()); return botDeck.pop(); }
+  if (bots.length && Math.random() < SHARE * Math.min(1, bots.length / 30)) {   // few inventions yet: fewer of them if (!botDeck.length) botDeck = shuffle(bots.slice()); return botDeck.pop(); }
   if (!deck.length) deck = shuffle(pool.slice());
   return deck.pop();
 }
