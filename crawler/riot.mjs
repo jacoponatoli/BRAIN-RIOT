@@ -25,12 +25,12 @@ const YEAR = new Date().getUTCFullYear();
 const DAY = 864e5;
 
 /* ---------------- words ---------------- */
-export const RIOT = /\briot|émeut|emeut|\bunrest|scontri|disordini|guerriglia|tafferugli|sommoss|\bclash|affrontement|enfrentamiento|disturbios|krawall|ausschreitung|stra(ß|ss)enschlacht|stra(ß|ss)enkampf|tear ?gas|lacrymog|lacrimog|tränengas|lachrymat|pepper spray|water cannon|canon à eau|idrant|wasserwerfer|barricad|barrikad|molotov.?(cocktail|bomb)|cocktails? molotov|molotow|black ?bloc|schwarzer block|\bCRS\b|\bBRAV|gendarmerie mobile|\bcelere\b|antidisturbios|police charge|cariche|charge policière|kettl|\bnasse\b|\bLBD\b|rubber bullet|caoutchouc|flash-?ball|grenade|incendi|burning|brûl|en feu|on fire|\bfires?\b|\bfeu\b|looting|looted|pillage|pillé|saccheggi|saqueo|vandal|dégradation|smashed|broken window|vitrine|police violence|violences policières|police brutality|stone[- ]?throw|jet de pierre|sassaiola|pyrotechn|fumigène|fumogen|smoke bomb|mortier|insurrection|uprising|riot police|bereitschaftspolizei|омон|\bomon\b|беспорядк|\barrest|interpellation|arrestat|detenid|confrontation|暴動|騷亂|骚乱|衝突|冲突|催淚|催泪|鎮暴|镇暴|폭동|최루|暴動|機動隊|اشتباك|قنابل الغاز|شغب/i;
+export const RIOT = /\briot|émeut|emeut|\bunrest|scontri|disordini|guerriglia|tafferugli|sommoss|\bclash|affrontement|enfrentamiento|disturbios|krawall|ausschreitung|stra(ß|ss)enschlacht|stra(ß|ss)enkampf|tear ?gas|lacrymog|lacrimog|tränengas|lachrymat|pepper spray|water cannon|canon à eau|idrant|wasserwerfer|barricad|barrikad|molotov.?(cocktail|bomb)|cocktails? molotov|molotow|black ?bloc|schwarzer block|\bCRS\b|\bBRAV|gendarmerie mobile|\bcelere\b|antidisturbios|police charge|cariche|charge policière|kettl|\bnasse\b|\bLBD\b|rubber bullet|caoutchouc|flash-?ball|grenade|incendi|burning|brûl|en feu|on fire|\bfires?\b|\bfeu\b|looting|looted|pillage|pillé|saccheggi|saqueo|vandal|dégradation|smashed|broken window|vitrine|stone[- ]?throw|jet de pierre|sassaiola|pyrotechn|fumigène|fumogen|smoke bomb|mortier|insurrection|uprising|riot police|bereitschaftspolizei|омон|\bomon\b|беспорядк|\barrest|interpellation|arrestat|detenid|confrontation|暴動|騷亂|骚乱|衝突|冲突|催淚|催泪|鎮暴|镇暴|폭동|최루|暴動|機動隊|اشتباك|قنابل الغاز|شغب/i;
 export const POLICE = /police|polizia|polic[ií]a|pol[ií]cia|polizei|politie|carabinieri|gendarm|guardia civil|mossos|policja|полиция|полиці|\bcops?\b|national guard|警察|경찰|شرطة/i;
 // riot words that mean something else
 const NOT_RIOT = /riot games|league of legends|valorant|riot fest|riot grrrl|quiet riot|riot act|riotfest|lol esports|esport|videogame|video game|cosplay|concert|festival|\bband\b|album|carnival|fireworks? display|campfire|bonfire|fireplace|fire ?station|fire ?engine|fire ?brigade|firefighting training|forest fire|wildfire|bushfire/i;
 const NOT_PHOTO = /\b(map|mappa|carte|karte|locator|logo|flag of|coat of arms|diagram|chart|graph|signature|plaque|grave|tomb|stolperstein|bust of|stamp|coin|medal|banknote|newspaper|front page|manuscript|seal of|exhibition|ausstellung|sculpt\w*)\b|展覽|展覧|人權展|\.svg|\.pdf|\.tiff?$/i;
-const NOT_CATEGORY = /congr[eèé]s|conference|konferenz|exhibition|exposition|ceremony|cérémonie|videos? of|maps? of|logos?\b|portraits? of|people associated|graves?\b|memorials?\b|monuments?\b|commemorat|anniversar|films? about|books? about|songs? about|works about|literature|in fiction|sound recordings|audio|documents|newspapers|stamps|coins|medals|posters|museum|collections of|signatures|quality images|featured pictures|valued images|uploaded by|taken with|files by|^people of|police officers of|politicians|elections?\b/i;
+const NOT_CATEGORY = /congr[eèé]s|conference|konferenz|exhibition|exposition|ceremony|cérémonie|videos? of|maps? of|logos?\b|portraits? of|people associated|graves?\b|cemeter|cimeti|friedhof|graveyard|memorials?\b|monuments?\b|commemorat|anniversar|films? about|books? about|songs? about|works about|literature|in fiction|sound recordings|audio|documents|newspapers|stamps|coins|medals|posters|museum|collections of|signatures|quality images|featured pictures|valued images|uploaded by|taken with|files by|^people of|police officers of|politicians|elections?\b/i;
 const NOT_PRIDE = (n) => /\bpride\b|christopher street|\bcsd\b/i.test(n) && !/protest|riot|manif|demo|stonewall/i.test(n);
 
 /* ---------------- tools ---------------- */
@@ -47,11 +47,11 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 let requests = 0;
 const report = { bySource: {}, errors: [] };
 const note = (what, msg) => { report.errors.push(what + ": " + String(msg).slice(0, 120)); if (report.errors.length > 30) report.errors.shift(); };
-async function get(url, { json = true, headers = {}, tries = 4 } = {}) {
+async function get(url, { json = true, headers = {}, tries = 4, timeout = 30000 } = {}) {
   for (let i = 0; i < tries; i++) {
     requests++;
     try {
-      const r = await fetch(url, { headers: { "User-Agent": UA, "Api-User-Agent": UA, ...headers }, signal: AbortSignal.timeout(30000) });
+      const r = await fetch(url, { headers: { "User-Agent": UA, "Api-User-Agent": UA, ...headers }, signal: AbortSignal.timeout(timeout) });
       if (r.status === 429 || r.status >= 500) { await sleep(5000 * (i + 1)); continue; }
       if (!r.ok) throw new Error("HTTP " + r.status);
       if (!json) return await r.text();
@@ -115,7 +115,7 @@ const FAMOUS = [   // riots and clashes that must be there from the start; [cate
   ["Protests against the G8 in Genoa (July 2001)", "all"], ["Carlo Giuliani", "all"], ["Barricades during Paris Commune", "all"],
   ["2005 riots in France", "all"], ["2011 riots in England", "all"], ["1992 Los Angeles riots", "all"], ["Watts riots", "all"],
   ["1967 Detroit riot", "all"], ["Stonewall riots", "all"], ["Poll tax riots", "all"], ["2008 Greek riots", "all"],
-  ["2023 Nahel Merzouk riots", "all"], ["Gwangju Uprising", "all"], ["Formosa Incident", "all"], ["Barricades", "all"], ["Police brutality", "filter"],
+  ["2023 Nahel Merzouk riots", "all"], ["Gwangju Uprising", "all"], ["Formosa Incident", "filter"],
   ["George Floyd protests", "filter"], ["Black Lives Matter", "filter"], ["Rallies in protest of the shooting of Michael Brown", "filter"],
   ["Sunflower Movement", "filter"], ["2024 Taiwanese legislative reform protests", "filter"],
   ["Demonstrations against extradition bill in Hong Kong, 2019", "filter"], ["Mouvement des gilets jaunes", "filter"], ["Euromaidan", "filter"],
@@ -203,9 +203,10 @@ const keepText = (t) => RIOT.test(t) && !NOT_RIOT.test(t);
 
 async function openverse() {
   const q = pick(SEARCH_WORDS);
-  const first = await get("https://api.openverse.org/v1/images/?" + new URLSearchParams({ q, page_size: "20", mature: "false" }));
+  const slow = { timeout: 90000, tries: 1 };      // Openverse is slow to answer GitHub's servers
+  const first = await get("https://api.openverse.org/v1/images/?" + new URLSearchParams({ q, page_size: "20", mature: "false" }), slow);
   const pages = Math.min(first.page_count || 1, 12);
-  const d = pages > 1 ? await get("https://api.openverse.org/v1/images/?" + new URLSearchParams({ q, page_size: "20", mature: "false", page: String(1 + rint(pages)) })) : first;
+  const d = pages > 1 ? await get("https://api.openverse.org/v1/images/?" + new URLSearchParams({ q, page_size: "20", mature: "false", page: String(1 + rint(pages)) }), slow) : first;
   let n = 0;
   for (const r of d.results || []) {
     const text = [r.title, ...(r.tags || []).map(t => t.name)].join(" ");
@@ -258,6 +259,13 @@ function clean() {                         // every run, the corpus is read agai
     for (const f of front) if (f[3] === "Police brutality") f[1] = "filter";
     delete state.visited["Category:Police brutality"];
     state.migrated1 = true;
+  }
+  if (!state.migrated2) {                    // "Barricades" (road barriers, war museums) and "Police brutality" (placards) are left out
+    const out = new Set(["Barricades", "Police brutality", "Formosa Incident"]);
+    corpus.items = corpus.items.filter(i => !out.has(i[8]));
+    for (let k = front.length - 1; k >= 0; k--) if (out.has(front[k][3]) || /^Category:(Barricades|Police brutality)$/.test(front[k][0])) front.splice(k, 1);
+    delete state.visited["Category:Formosa Incident"];
+    state.migrated2 = true;
   }
   const before = corpus.items.length;
   corpus.items = corpus.items.filter(i => !NOT_PHOTO.test(i[2] || "") && !NOT_RIOT.test((i[2] || "") + " " + (i[8] || "")) &&
