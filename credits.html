@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PROTEST! — credits</title>
+<title>RIOT! — credits</title>
 <style>
 html,body{margin:0;background:#000;color:#fff}
 body{font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:16px;max-width:1100px}
@@ -16,13 +16,16 @@ li{margin:0;word-break:break-word}
 </style>
 </head>
 <body>
-<p><a href="./">PROTEST!</a><br>Jacopo Natoli, 2026</p>
-<p class="d">Riots of all the world, from this summer to now: photographs of clashes with the police, barricades, tear gas and fires,
-gathered continuously from the protest categories of <a href="https://commons.wikimedia.org/wiki/Category:Demonstrations_and_protests_in_2026">Wikimedia Commons</a>.
-The window moves forward with time and new photographs keep arriving. Every image belongs to its author and keeps its own license.</p>
+<p><a href="./">RIOT!</a><br>Jacopo Natoli, 2026</p>
+<p class="d">Riots of the whole world and of every time: clashes with the police, barricades, tear gas, fires.
+Every three hours a crawler walks further into
+<a href="https://commons.wikimedia.org/wiki/Category:Riots">Wikimedia Commons</a> (guided by <a href="https://www.wikidata.org">Wikidata</a>),
+<a href="https://openverse.org">Openverse</a>, <a href="https://www.europeana.eu">Europeana</a> and the <a href="https://www.loc.gov/photos/">Library of Congress</a>,
+and the corpus keeps growing: <span id="n">…</span> photographs so far.
+Every image belongs to its author and keeps its own license.</p>
 <p class="d">The images that have passed on this screen, newest first — title, author, license, link to the original:</p>
 <ol id="l"></ol>
-<p id="none" class="d" hidden>Nothing has passed on this screen yet. Open <a href="./">PROTEST!</a> and come back.</p>
+<p id="none" class="d" hidden>Nothing has passed on this screen yet. Open <a href="./">RIOT!</a> and come back.</p>
 <script>
 (() => {
 "use strict";
@@ -41,6 +44,9 @@ for (let i = rows.length - 1; i >= 0; i--) {
 }
 document.getElementById("l").innerHTML = out.join("");
 document.getElementById("none").hidden = out.length > 0;
+fetch("https://raw.githubusercontent.com/jacoponatoli/PROTEST/main/riot-sample.json?v=" + Math.floor(Date.now() / 600e3))
+  .then(r => r.json()).then(d => { document.getElementById("n").textContent = Number(d.total || 0).toLocaleString("en"); })
+  .catch(() => { document.getElementById("n").textContent = "many"; });
 })();
 </script>
 </body>
