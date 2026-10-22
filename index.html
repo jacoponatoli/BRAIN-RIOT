@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>PROTEST!</title>
+<title>RIOT!</title>
 <link rel="license" href="credits.html">
 <link rel="preconnect" href="https://upload.wikimedia.org">
-<link rel="preconnect" href="https://commons.wikimedia.org" crossorigin>
+<link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin>
 <style>
 html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden;cursor:none}
 #s,#s img{position:fixed;inset:0;width:100%;height:100%}
@@ -16,169 +16,62 @@ html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden;cursor
 <body>
 <div id="s"></div>
 <script>
-/* PROTEST! — Jacopo Natoli, 2026
-   Riots of all the world, from this summer to now: clashes with the police, barricades, tear gas, fires,
-   every photograph that Wikimedia Commons files among the demonstrations and protests of these months,
-   one after the other, half a second each. The window slides forward with time and the page keeps
-   looking for new photographs. Credits: credits.html */
+/* RIOT! — Jacopo Natoli, 2026
+   Riots of the whole world and of every time: clashes with the police, barricades, tear gas, fires.
+   A crawler walks further into the open archives every three hours (crawler/riot.mjs) and the corpus keeps growing;
+   the page shows it one photograph after another, half a second each. Credits: credits.html */
 (() => {
 "use strict";
 
-const STEP = 500;                   // every image stays half a second
-const WINDOW_DAYS = 150;            // from this summer to now; it moves forward with time
-const REFRESH = 3 * 3600e3;         // look for new photographs every three hours
-const W = matchMedia("(pointer:coarse)").matches ? 960 : 1280;
+const STEP = 500;                                  // every image stays half a second
+const RELOAD = 30 * 60e3;                          // look at the corpus again every half hour
+const RAW = "https://raw.githubusercontent.com/jacoponatoli/PROTEST/main/";
 
-const NOW = Date.now(), START = NOW - WINDOW_DAYS * 864e5, END = NOW + 864e5;
-const YEARS = []; for (let y = new Date(START).getUTCFullYear(); y <= new Date(NOW).getUTCFullYear(); y++) YEARS.push(y);
-const ROOTS = YEARS.flatMap(y => ["Category:Demonstrations and protests in " + y, "Category:" + y + " riots"]);
-const API = "https://commons.wikimedia.org/w/api.php?";
-const KEY = "PROTEST!riot", SEEN_KEY = "PROTEST!seen";
-
-/* ---------- dates written in category names and in the photographs' data ---------- */
-// A month counts only next to a year ("October 2026", "octubre de 2026") or a day ("17 octobre"),
-// so that "Women's March", "Plaza de Mayo" or "Mai 68" are not read as dates
-const MONTHS = ["january|janvier|gennaio|enero|januar|janeiro|gener|stycznia", "february|février|fevrier|febbraio|febrero|februar|fevereiro|febrer|lutego|feb",
-  "marzo|märz|marz|março|març", "april|avril|aprile|abril|kwietnia|apr", "maggio|maio|maig",
-  "june|juin|giugno|junio|juni|junho|juny|czerwca|jun", "july|juillet|luglio|julio|juli|julho|juliol|lipca|jul", "august|août|aout|agosto|agost|sierpnia|aug",
-  "september|septembre|settembre|septiembre|setembro|setembre|września|sept|sep", "october|octobre|ottobre|octubre|oktober|outubro|października|oct|okt",
-  "november|novembre|noviembre|novembro|listopada|nov", "december|décembre|decembre|dicembre|diciembre|dezember|dezembro|desembre|grudnia|dec|dez"]
-  .map(s => [new RegExp("(?:^|[^\\p{L}])(?:" + s + ")\\.?[\\s,]*(?:de\\s+|del\\s+|of\\s+)?(20\\d\\d)\\b", "iu"),
-             new RegExp("\\b[0-3]?\\d(?:st|nd|rd|th|er|e|º|°)?\\.?\\s*(?:de\\s+|d'|of\\s+)?(?:" + s + ")(?:[^\\p{L}]|$)", "iu")]);
-function dateIn(text) {
-  const t = String(text || "");
-  let m = t.match(/\b(20\d\d)[-_.\/: ]?([01]\d)(?:[-_.\/: ]?([0-3]\d))?/);
-  if (m && +m[2] >= 1 && +m[2] <= 12) return Date.UTC(+m[1], +m[2] - 1, m[3] && +m[3] >= 1 && +m[3] <= 31 ? +m[3] : 15);
-  m = t.match(/\b([0-3]?\d)[-.\/]([01]?\d)[-.\/](20\d\d)\b/);
-  if (m && +m[2] >= 1 && +m[2] <= 12) return Date.UTC(+m[3], +m[2] - 1, +m[1]);
-  const y = t.match(/\b(20\d\d)\b/);
-  if (!y) return null;
-  for (let i = 0; i < 12; i++) {
-    const a = t.match(MONTHS[i][0]);
-    if (a) return Date.UTC(+a[1], i, 15);
-    if (MONTHS[i][1].test(t)) return Date.UTC(+y[1], i, 15);
-  }
-  return null;
-}
-const otherYearsOnly = (t) => { const ys = (t.match(/\b(19\d\d|20\d\d)\b/g) || []).map(Number); return ys.length > 0 && !ys.some(y => YEARS.includes(y)); };
-const NOT_PHOTO = /\b(map|mappa|carte|karte|logo|flag of|coat of arms|diagram|chart|graph|poster template)\b/i;
-const PER_EVENT = 100;              // no single event takes over the stream
-// What makes a riot: in the name of the event, or in the photograph's title, description and categories
-const RIOT = /\briot|émeut|emeut|\bunrest|scontri|disordini|guerriglia|tafferugli|\bclash|affrontement|enfrentamiento|disturbios|krawall|ausschreitung|stra(ß|ss)enschlacht|tear ?gas|lacrymog|lacrimog|tränengas|pepper spray|water cannon|canon à eau|idrant|wasserwerfer|barricad|barrikad|molotov|black ?bloc|schwarzer block|\bCRS\b|\bBRAV|gendarmerie mobile|\bcelere\b|antidisturbios|police charge|cariche|charge policière|kettl|\bnasse\b|\bLBD\b|rubber bullet|caoutchouc|flash-?ball|grenade|incendi|burning|brûl|en feu|on fire|\bfires?\b|\bfeu\b|lachrymat|looting|pillage|pillé|saccheggi|saqueo|vandal|dégradation|smashed|broken window|vitrine|police violence|violences policières|police brutality|stone[- ]?throw|jet de pierre|sassaiola|pyrotechn|fumigène|fumogen|smoke bomb|mortier|insurrection|uprising|riot police|bereitschaftspolizei|омон|\bomon\b|\barrest|interpellation|arrestat|detenid|confrontation/i;
-const POLICE = /police|polizia|polic[ií]a|pol[ií]cia|polizei|politie|carabinieri|gendarm|guardia civil|mossos|policja|полиция|\bcops?\b/i;
-const NOT_PROTEST = (name) => /congr[eèé]s|conference|konferenz|exhibition|exposition|ceremony|cérémonie/i.test(name) ||
-  (/\bpride\b|christopher street|\bcsd\b/i.test(name) && !/protest|manif|demo/i.test(name));
-const strip = (h) => String(h || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const rint = (n) => Math.floor(Math.random() * n);
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = rint(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
-/* ---------- the pool ---------- */
+/* ---------- the corpus ---------- */
 const pool = [], have = new Set();
-let deck = [], dirty = false;
-function add(it) {
-  if (!it || !it.u || have.has(it.u) || !(it.w >= START)) return;
-  have.add(it.u); pool.push(it);
+let deck = [];
+function add(r) {                                  // r = [url, fallback, title, author, license, link, source, year, event]
+  if (!r || !r[0] || have.has(r[0])) return;
+  have.add(r[0]);
+  const it = { u: r[0], o: r[1], t: r[2], a: r[3], l: r[4], k: r[5], s: r[6] };
+  pool.push(it);
   deck.splice(rint(deck.length + 1), 0, it);
-  dirty = true;
 }
-function drop(it) { const i = pool.indexOf(it); if (i > -1) { pool.splice(i, 1); dirty = true; } }
-function save(t) {
-  try { localStorage.setItem(KEY, JSON.stringify({ t, p: pool.map(i => [i.u, i.o, i.t, i.a, i.l, i.k, i.w]) })); dirty = false; } catch (e) {}
-}
-const seen = [];
-function flushSeen() {
-  if (!seen.length) return;
-  try { localStorage.setItem(SEEN_KEY, JSON.stringify(JSON.parse(localStorage.getItem(SEEN_KEY) || "[]").concat(seen.splice(0)).slice(-1500))); }
-  catch (e) { seen.length = 0; }
-}
-
-/* ---------- the search: every protest category of these months, all the way down ---------- */
-async function api(p) {
-  for (let i = 0; i < 4; i++) {
-    try { return JSON.parse(await (await fetch(API + new URLSearchParams({ format: "json", formatversion: "2", origin: "*", ...p }))).text()); }
-    catch (e) { await sleep(15000 * (i + 1)); }       // the archive asks to slow down
+async function load(name) {
+  const v = Math.floor(Date.now() / 600e3);        // a fresh copy every ten minutes
+  for (const base of [RAW, "./"]) {
+    try {
+      const r = await fetch(base + name + "?v=" + v, { cache: "no-cache" });
+      if (r.ok) return await r.json();
+    } catch (e) {}
   }
-  crawlOk = false;
-  return {};
+  return null;
 }
-let crawling = false, crawlOk = true;
-async function crawl() {
-  if (crawling) return;
-  crawling = true;
-  const seenCats = new Set(), queue = ROOTS.map(c => [c, 0, false, false]), fresh = new Set();
-  crawlOk = true;
-  let active = 0;
-  const worker = async () => {
-    while (queue.length || active) {
-      if (!queue.length) { await sleep(300); continue; }
-      const [c, depth, inWindow, riotParent] = queue.shift();
-      if (seenCats.has(c)) continue;
-      seenCats.add(c);
-      active++;
-      const riotEvent = riotParent || RIOT.test(c.replace(/^Category:/, ""));
-      let cont = {}, taken = 0;
-      do {
-        const r = await api({ action: "query", generator: "categorymembers", gcmtitle: c, gcmtype: "subcat|file", gcmlimit: "500",
-          prop: "imageinfo", iiprop: "url|mime|size|extmetadata", iiextmetadatafilter: "DateTimeOriginal|Artist|LicenseShortName|Categories|ImageDescription", iiurlwidth: String(W), ...cont });
-        const found = [];
-        for (const pg of (r.query && r.query.pages) || []) {
-          if (pg.ns === 14) {
-            const name = pg.title.replace(/^Category:/, ""), d = dateIn(name);
-            if (depth >= 6 || otherYearsOnly(name) || NOT_PROTEST(name) || (d != null && (d < START - 20 * 864e5 || d > END))) continue;
-            queue.push([pg.title, depth + 1, inWindow || d != null, riotEvent]);
-            continue;
-          }
-          const ii = pg.imageinfo && pg.imageinfo[0];
-          if (!ii || !/^image\/(jpeg|png|webp)$/.test(ii.mime) || ii.width < 500 || NOT_PHOTO.test(pg.title)) continue;
-          const em = ii.extmetadata || {};
-          let when = dateIn(strip(em.DateTimeOriginal && em.DateTimeOriginal.value));
-          if (when == null) when = dateIn(pg.title);
-          if (when == null) { if (!inWindow) continue; when = NOW; }
-          if (when < START || when > END) continue;
-          const cats = strip(em.Categories && em.Categories.value), title = pg.title;
-          if (!riotEvent && !RIOT.test(title + " " + cats + " " + strip(em.ImageDescription && em.ImageDescription.value).slice(0, 400))
-              && !POLICE.test(title + " " + cats)) continue;          // only riots, clashes, barricades, police
-          const thumb = (ii.thumburl || ii.url).split("?")[0], orig = ii.url.split("?")[0];
-          found.push({ u: thumb, o: thumb !== orig ? orig : null, t: pg.title.replace(/^File:/, "").replace(/\.[a-z0-9]+$/i, "").replace(/_/g, " ").slice(0, 90),
-                a: strip(em.Artist && em.Artist.value).slice(0, 60), l: strip(em.LicenseShortName && em.LicenseShortName.value).slice(0, 24), k: ii.descriptionurl, w: when });
-        }
-        for (const it of shuffle(found).slice(0, Math.max(0, PER_EVENT - taken))) { fresh.add(it.u); add(it); taken++; }
-        fill();
-        cont = r.continue || null;
-        await sleep(100);
-      } while (cont);
-      active--;
-    }
-  };
-  await Promise.all([worker(), sleep(400).then(worker), sleep(800).then(worker)]);
-  if (crawlOk && fresh.size > 50) {           // a complete search replaces the old one: each time a new choice per event
-    for (const it of pool.slice()) if (!fresh.has(it.u)) { pool.splice(pool.indexOf(it), 1); have.delete(it.u); }
-    deck = shuffle(pool.slice());
-  }
-  lastCrawl = Date.now();
-  save(lastCrawl);
-  crawling = false;
+async function grow() {
+  const c = await load("riot-corpus.json");
+  if (c && c.items) { for (const r of c.items) add(r); fill(); }
 }
-let lastCrawl = 0;
 
 /* ---------- the stream: half a second each, steady ---------- */
 const stage = document.getElementById("s");
 const ready = [];
-let loading = 0, started = false;
+let loading = 0, started = false, beat = 0;
 function next() { if (!deck.length) deck = shuffle(pool.slice()); return deck.pop(); }
 function fill() {
-  while (pool.length && loading < 8 && ready.length + loading < 12) { const it = next(); if (!it) break; load(it); }
+  while (pool.length && loading < 8 && ready.length + loading < 12) { const it = next(); if (!it) break; show(it); }
 }
-function load(it) {
+function show(it) {
   loading++;
   const im = new Image();
-  im.alt = ""; im.decoding = "async";
+  im.alt = ""; im.decoding = "async"; im.referrerPolicy = "no-referrer";
   let tried = false, over = false, timer;
   const finish = (ok) => {
     if (over) return; over = true; clearTimeout(timer); loading--;
     if (ok) { im._it = it; ready.push(im); if (!started) { started = true; beat = performance.now(); tick(); } }
-    else drop(it);
+    else { const i = pool.indexOf(it); if (i > -1) pool.splice(i, 1); }
     fill();
   };
   const fail = () => {
@@ -194,61 +87,54 @@ function load(it) {
   im.onerror = fail;
   im.src = it.u;
 }
-let beat = 0;
+const seen = [];
 function tick() {
   if (ready.length) {
     const im = ready.shift();
     stage.replaceChildren(im);
     const it = im._it;
-    seen.push([it.t, it.a, it.l, it.k, "commons", Date.now()]);
+    seen.push([it.t, it.a, it.l, it.k, it.s, Date.now()]);
     fill();
   }
   beat += STEP;
   const now = performance.now();
-  if (beat < now - STEP) beat = now + STEP;          // after a pause (hidden tab) the beat starts again
+  if (beat < now - STEP) beat = now + STEP;        // after a pause (hidden tab) the beat starts again
   setTimeout(tick, beat - now);
 }
+function flushSeen() {
+  if (!seen.length) return;
+  try { localStorage.setItem("PROTEST!seen", JSON.stringify(JSON.parse(localStorage.getItem("PROTEST!seen") || "[]").concat(seen.splice(0)).slice(-1500))); }
+  catch (e) { seen.length = 0; }
+}
 
-/* ---------- go ---------- */
+/* ---------- go: a small sample to start at once, then the whole corpus ---------- */
 const UP = "https://upload.wikimedia.org/wikipedia/commons/";
 const SEED = `d/d7/Incendie_Hotel_de_ville_Limoges_20261017-185802.jpg
 f/ff/Incendie_Hotel_de_ville_Limoges_20261017-185927.jpg
-e/e1/Incendie_Hotel_de_ville_Limoges_20261017-184854.jpg
-f/f7/Incendie_Hotel_de_ville_Limoges_20261017-190526.jpg
-0/09/Incendie_Hotel_de_ville_Limoges_20261017-190142.jpg
 a/a3/Incendie_Hotel_de_ville_Limoges_20261017-192711.jpg
-5/5d/Incendie_Hotel_de_ville_Limoges_20261017-194429.jpg
-b/b8/Incendie_Hotel_de_ville_Limoges_20261017-200004.jpg
-c/c4/Incendie_Hotel_de_ville_Limoges_20261017-202851.jpg
 9/9c/Incendie_Hotel_de_ville_Limoges_20261017-204913.jpg
 5/56/Italian_protests_2026.jpg
 d/d8/Lyon_2e_-_Rue_de_la_R%C3%A9publique_-_Sous_les_gaz_lacrymog%C3%A8nes%2C_pendant_les_manifestations_du_17_octobre_2026.jpg
 4/4a/Lyon_2e_-_Rue_du_Pr%C3%A9sident_%C3%89douard_Herriot_-_Feu_au_milieu_de_la_route_pendant_les_manifestations_du_17_octobre_2026.jpg
 6/60/Lyon_2e_-_Rue_du_Pr%C3%A9sident_Carnot_-_Attaque_du_magasin_Decathlon%2C_pendant_les_manifestations_du_17_octobre_2026.jpg
-d/d1/Lyon_2e_-_Rue_Grenette_-_Magasin_vandalis%C3%A9_pendant_les_manifestations_du_17_octobre_2026.jpg
-f/f3/Lyon_2e_-_Place_de_la_R%C3%A9publique_-_Magasins_barricad%C3%A9s_apr%C3%A8s_les_manifestations_du_17_octobre_2026.jpg
 e/ec/Lyon_2e_-_Rue_de_la_Barre_-_Magasin_Citadium_pill%C3%A9_apr%C3%A8s_les_manifestations_du_17_octobre_2026.jpg
 1/19/Office_du_tourisme_incendi%C3%A9_%28Lyon%2C_2026%29.jpg`.split("\n");
-
-let cache = null;
-try {
-  cache = JSON.parse(localStorage.getItem(KEY) || "null");
-  for (const k of ["PROTEST!pool", "PROTEST!v2", "PROTEST!recent"]) localStorage.removeItem(k);      // earlier versions
-} catch (e) {}
-if (cache && cache.p) for (const [u, o, t, a, l, k, w] of cache.p) add({ u, o, t, a, l, k, w });
-if (pool.length < 50) for (const p of SEED) {
-  const name = p.slice(p.lastIndexOf("/") + 1);
-  add({ u: UP + "thumb/" + p + "/" + W + "px-" + name, o: UP + p, t: decodeURIComponent(name).replace(/_/g, " "),
-        k: "https://commons.wikimedia.org/wiki/File:" + name, w: Date.UTC(2026, 9, 15) });
-}
-deck = shuffle(pool.slice());
-fill();
-lastCrawl = cache && cache.t || 0;
-const age = NOW - lastCrawl;
-setTimeout(function again() { crawl().then(() => setTimeout(again, REFRESH)); }, age > REFRESH ? 0 : REFRESH - age);
-setInterval(() => { if (dirty) save(lastCrawl); flushSeen(); }, 20000);   // what is found is kept even if the page closes mid-search
+try { for (const k of ["PROTEST!pool", "PROTEST!v2", "PROTEST!recent", "PROTEST!riot"]) localStorage.removeItem(k); } catch (e) {}   // earlier versions
+(async () => {
+  const s = await load("riot-sample.json");
+  if (s && s.items && s.items.length) for (const r of s.items) add(r);
+  else for (const p of SEED) {                     // before the first harvest
+    const name = p.slice(p.lastIndexOf("/") + 1);
+    add([UP + "thumb/" + p + "/1280px-" + name, UP + p, decodeURIComponent(name).replace(/_/g, " "), "", "", "https://commons.wikimedia.org/wiki/File:" + name, "Wikimedia Commons"]);
+  }
+  deck = shuffle(pool.slice());
+  fill();
+  await grow();
+  setInterval(grow, RELOAD);
+})();
+setInterval(flushSeen, 20000);
 addEventListener("pagehide", flushSeen);
-if (/debug/.test(location.search)) window.PROTEST = { pool, ready, get crawling() { return crawling; } };
+if (/debug/.test(location.search)) window.RIOT = { pool, ready };
 })();
 </script>
 </body>
