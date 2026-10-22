@@ -241,9 +241,10 @@ async function loc() {
   for (const r of d.results || []) {
     const title = [].concat(r.title || [])[0] || "", subj = [].concat(r.subject || []).join(" ");
     if (!keepText(title + " " + subj)) continue;
-    const imgs = (r.image_url || []).filter(u => typeof u === "string");
+    const size = (u) => { const m = /[#&]w=(\d+)/.exec(u) || /_(\d+)px\./.exec(u); return m ? +m[1] : 0; };
+    const imgs = (r.image_url || []).filter(u => typeof u === "string").sort((a, b) => size(a) - size(b));
     const u = imgs[imgs.length - 1];
-    if (!u) continue;
+    if (!u || (size(u) && size(u) < 500)) continue;      // only the large versions
     if (add({ u: u.split("#")[0].replace(/^http:/, "https:"), o: imgs[0] ? imgs[0].split("#")[0].replace(/^http:/, "https:") : null, t: title,
       a: [].concat(r.contributor || [])[0], l: "", k: r.url || r.id, s: "Library of Congress", y: yearOf(r.date), e: "loc:" + q })) n++;
   }
@@ -260,6 +261,7 @@ function clean() {                         // every run, the corpus is read agai
   }
   const before = corpus.items.length;
   corpus.items = corpus.items.filter(i => !NOT_PHOTO.test(i[2] || "") && !NOT_RIOT.test((i[2] || "") + " " + (i[8] || "")) &&
+    !(/_(\d+)px\./.test(i[0]) && +/_(\d+)px\./.exec(i[0])[1] < 500) &&
     (String(i[6]).startsWith("Wikimedia") || keepText(i[2] || "")));
   have.clear(); for (const i of corpus.items) have.add(i[0]);
   for (const k of Object.keys(perEvent)) delete perEvent[k];
