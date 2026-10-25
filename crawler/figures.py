@@ -47,7 +47,7 @@ def cutout(im):
 def inked(im):
     g = ImageOps.grayscale(im)
     w, h = g.size
-    g = g.crop((int(w * 0.05), int(h * 0.04), int(w * 0.95), int(h * 0.96)))   # frames at the edges go
+    g = g.crop((int(w * 0.05), int(h * 0.04), int(w * 0.95), int(h * 0.92)))   # frames at the edges go, and the patch over the logo
     hist = g.histogram()
     n, acc, paper = sum(hist), 0, 255
     for v in range(255, -1, -1):
@@ -57,9 +57,16 @@ def inked(im):
             break
     top = max(60, paper - 14)
     g = g.point(lambda v: 255 if v >= top else int(255 * (v / top) ** 1.1))   # the paper becomes white, the lines stay
+    W, H = g.size                                                   # the paper must be clean all around, or it would print as a stain
+    for edge in ((0, 0, int(W * 0.04), H), (int(W * 0.96), 0, W, H), (0, 0, W, int(H * 0.03))):
+        e = g.crop(edge).histogram()
+        if sum(i * c for i, c in enumerate(e)) / max(1, sum(e)) < 225:
+            raise ValueError("dirty paper")
     box = g.point(lambda v: 255 if v < 150 else 0).getbbox()
     if not box or box[3] - box[1] < g.height * 0.35:
         raise ValueError("no figure on the paper")
+    if (box[2] - box[0]) / (box[3] - box[1]) > 0.95:
+        raise ValueError("not a standing figure")
     pad = 6
     box = (max(0, box[0] - pad), max(0, box[1] - pad), min(g.width, box[2] + pad), min(g.height, box[3] + pad))
     return g.crop(box).convert("RGB")
