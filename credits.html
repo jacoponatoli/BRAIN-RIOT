@@ -23,9 +23,12 @@ Every three hours a crawler walks further into
 <a href="https://openverse.org">Openverse</a>, <a href="https://www.europeana.eu">Europeana</a> and the <a href="https://www.loc.gov/photos/">Library of Congress</a>,
 and the corpus keeps growing: <span id="n">…</span> photographs so far.
 Every image belongs to its author and keeps its own license.</p>
-<p class="d">One image in five is invented: riots of robots, cyborgs, androids and the like, in the streets of the real riots.
+<p class="d">About one image in seven is invented: riots of robots, cyborgs, androids and the like, in the streets of the real riots.
 The crawler writes the scenes and a machine imagines them (<a href="https://pollinations.ai">Pollinations.AI</a>), thirty or so every three hours:
 <span id="b">…</span> so far. In the list below they are marked “invented”.</p>
+<p class="d">About one in five is a hybrid: real photographs and old engravings into which the page slips, each time differently,
+figures of robots and cyborgs that the machine imagines alone on white, photographed or engraved (<span id="f">…</span> figures so far).
+No hybrid passes twice the same. Only pictures whose licence allows changes are altered; in the list below they are marked “altered”.</p>
 <p class="d">The images that have passed on this screen, newest first — title, author, license, link to the original:</p>
 <ol id="l"></ol>
 <p id="none" class="d" hidden>Nothing has passed on this screen yet. Open <a href="./">RIOT!</a> and come back.</p>
@@ -51,8 +54,11 @@ fetch("https://raw.githubusercontent.com/jacoponatoli/PROTEST/main/riot-sample.j
   .then(r => r.json()).then(d => { document.getElementById("n").textContent = Number(d.total || 0).toLocaleString("en"); })
   .catch(() => { document.getElementById("n").textContent = "many"; });
 fetch("https://raw.githubusercontent.com/jacoponatoli/PROTEST/robots/robots.json?v=" + Math.floor(Date.now() / 600e3))
-  .then(r => r.json()).then(d => { document.getElementById("b").textContent = Number(d.total || 0).toLocaleString("en"); })
-  .catch(() => { document.getElementById("b").textContent = "none yet"; });
+  .then(r => r.json()).then(d => {
+    document.getElementById("b").textContent = Number(d.total || 0).toLocaleString("en");
+    document.getElementById("f").textContent = Number((d.figures || []).length).toLocaleString("en");
+  })
+  .catch(() => { document.getElementById("b").textContent = document.getElementById("f").textContent = "none yet"; });
 })();
 </script>
 </body>
