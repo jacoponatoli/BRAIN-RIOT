@@ -11,6 +11,8 @@
 html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden;cursor:none}
 #s,#s img{position:fixed;inset:0;width:100%;height:100%}
 #s img{object-fit:contain;display:block}
+#s.g img:first-child{animation:j .09s steps(2) infinite}
+@keyframes j{0%{transform:translate(-1.2%,.4%) skewX(-3deg);filter:contrast(1.8) saturate(2.2)}50%{transform:translate(1.4%,-.3%) scaleY(1.04);filter:contrast(1.3) invert(.08) hue-rotate(25deg)}}
 </style>
 </head>
 <body>
@@ -18,30 +20,41 @@ html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden;cursor
 <script>
 /* RIOT! — Jacopo Natoli, 2026
    Riots of the whole world and of every time: clashes with the police, barricades, tear gas, fires.
-   A crawler walks further into the open archives every three hours (crawler/riot.mjs) and the corpus keeps growing;
-   meanwhile a machine invents riots of robots, cyborgs and androids (crawler/robots.mjs): one image in five.
-   The page shows them one after another, half a second each. Credits: credits.html */
+   A crawler walks further into the open archives every three hours (crawler/riot.mjs) and the corpus keeps growing.
+   Meanwhile a machine invents riots of robots, cyborgs and androids (crawler/robots.mjs), and figures of them
+   that the page slips, each time differently, into the real photographs and engravings: hybrids.
+   Half a second each, as a rule; now and then a rush, a jam, a stutter, a glitch. Credits: credits.html */
 (() => {
 "use strict";
 
-const STEP = 500;                                  // every image stays half a second
+const STEP = 500;                                  // as a rule every image stays half a second
 const RELOAD = 30 * 60e3;                          // look at the corpus again every half hour
 const RAW = "https://raw.githubusercontent.com/jacoponatoli/PROTEST/main/";
 const BOTS = "https://raw.githubusercontent.com/jacoponatoli/PROTEST/robots/";
-const SHARE = 0.2;                                 // one image in five is an invented riot
+const INVENTED = 0.15;                             // riots wholly invented by the machine
+const HYBRID = 0.2;                                // real pictures with beings of the future slipped in
+const P_RUSH = 0.02, P_JAM = 0.012, P_STUTTER = 0.01, P_GLITCH = 0.02;   // now and then, per beat
+const CALM = matchMedia("(prefers-reduced-motion: reduce)").matches;    // no rushes nor glitches for who asked so
 
 const rint = (n) => Math.floor(Math.random() * n);
+const rnd = (a, b) => a + Math.random() * (b - a);
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = rint(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
 /* ---------- the corpus ---------- */
-const pool = [], have = new Set();
+const pool = [], have = new Set(), hy = [], hyOld = [];
 let deck = [];
+const OPEN = /public domain|^pd|cc0|cc by|copyrighted free use|no known/i, CLOSED = /\bnd\b|-nd|no ?deriv/i;
+const OLD = /gravure|engraving|etching|lithograph|estampe|stich|incisione|woodcut|xylograph|drawing|dessin|zeichnung|disegno|harper|illustrated|petit journal|caricature/i;
 function add(r) {                                  // r = [url, fallback, title, author, license, link, source, year, event]
   if (!r || !r[0] || have.has(r[0])) return;
   have.add(r[0]);
-  const it = { u: r[0], o: r[1], t: r[2], a: r[3], l: r[4], k: r[5], s: r[6] };
+  const it = { u: r[0], o: r[1], t: r[2], a: r[3], l: r[4], k: r[5], s: r[6], y: r[7] };
   pool.push(it);
   deck.splice(rint(deck.length + 1), 0, it);
+  if (/^https:\/\/(upload|thumb)\.wikimedia\.org\//.test(it.u) && OPEN.test(it.l || "") && !CLOSED.test(it.l || "")) {
+    hy.push(it);                                   // free to be altered, and readable by the page
+    if (OLD.test(it.t || "") || (it.y && it.y < 1890)) hyOld.push(it);
+  }
 }
 async function load(name) {
   const v = Math.floor(Date.now() / 600e3);        // a fresh copy every ten minutes
@@ -57,42 +70,167 @@ async function grow() {
   const c = await load("riot-corpus.json");
   if (c && c.items) { for (const r of c.items) add(r); fill(); }
 }
-const bots = [], botHave = new Set();               // the invented riots: robots, cyborgs, androids
+const bots = [], botHave = new Set(), figs = [], figHave = new Set();
 let botDeck = [];
-async function dream() {
+async function dream() {                           // the invented riots, and the figures for the hybrids
   try {
     const r = await fetch(BOTS + "robots.json?v=" + Math.floor(Date.now() / 600e3), { cache: "no-cache" });
     if (!r.ok) return;
-    for (const x of (await r.json()).items || []) {
+    const d = await r.json();
+    for (const x of d.items || []) {
       if (!x || !x[0] || botHave.has(x[0])) continue;
       botHave.add(x[0]);
       const it = { u: x[0], o: x[1], t: x[2], a: x[3], l: x[4], k: x[5], s: x[6], b: 1 };
       bots.push(it);
       botDeck.splice(rint(botDeck.length + 1), 0, it);
     }
+    for (const f of d.figures || []) if (f && f[0] && !figHave.has(f[0])) { figHave.add(f[0]); figs.push({ u: f[0], ink: f[1] === "ink", t: f[2] }); }
   } catch (e) {}
 }
 
-/* ---------- the stream: half a second each, steady ---------- */
+/* ---------- hybrids: beings of the future slipped into real pictures ---------- */
+const HY = (() => {
+  const lumOf = (d, i) => 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+  const canvas = (w, h) => { const c = document.createElement("canvas"); c.width = Math.max(1, w); c.height = Math.max(1, h); return c; };
+  const load = (u) => new Promise((ok, no) => { const im = new Image(); im.crossOrigin = "anonymous"; im.decoding = "async";
+    im.onload = () => ok(im); im.onerror = no; im.src = u; setTimeout(() => no(new Error("timeout")), 9000); });
+  const figImg = (f) => (f.p ||= load(f.u).catch((e) => { f.p = null; throw e; }));
+
+  // what kind of picture: an engraving or drawing, a black and white (or sepia) photograph, a colour photograph
+  function kind(img, text, year) {
+    const c = canvas(96, Math.round(96 * img.naturalHeight / img.naturalWidth)), x = c.getContext("2d", { willReadFrequently: true });
+    x.drawImage(img, 0, 0, c.width, c.height);
+    const d = x.getImageData(0, 0, c.width, c.height).data, n = d.length / 4, dark = [];
+    let sat = 0, light = 0, mid = 0, m = 0, a1 = 0, a2 = 0, b1 = 0, b2 = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]), L = lumOf(d, i), l = L / 255;
+      sat += mx ? (mx - mn) / mx : 0; if (l > 0.78) light++; else if (l > 0.3) mid++;
+      if (L > 40) { const a = (d[i] - L) / L, b = (d[i + 2] - L) / L; m++; a1 += a; a2 += a * a; b1 += b; b2 += b * b; }
+      dark.push([l, d[i], d[i + 1], d[i + 2]]);
+    }
+    sat /= n; light /= n; mid /= n; m = Math.max(1, m);
+    // one single tint all over (yellowed paper, sepia): it is a monochrome, whatever its colour
+    const tinted = Math.sqrt(Math.max(0, a2 / m - (a1 / m) ** 2)) < 0.07 && Math.sqrt(Math.max(0, b2 / m - (b1 / m) ** 2)) < 0.07;
+    dark.sort((a, b) => a[0] - b[0]);
+    const cw = c.width, chh = c.height, cols = new Uint16Array(cw), rows = new Uint16Array(chh);   // where the picture is, inside its margins
+    for (let y = 0; y < chh; y++) for (let xx = 0; xx < cw; xx++) if (lumOf(d, (y * cw + xx) * 4) < 150) { cols[xx]++; rows[y]++; }
+    const span = (a, len, other) => { let i = 0, j = len - 1; while (i < j && a[i] < other * 0.08) i++; while (j > i && a[j] < other * 0.08) j--; return [i / len, (j + 1) / len]; };
+    let [bx0, bx1] = span(cols, cw, chh), [by0, by1] = span(rows, chh, cw);
+    if (bx1 - bx0 < 0.3 || by1 - by0 < 0.3) { bx0 = by0 = 0; bx1 = by1 = 1; }
+    const k = Math.max(1, Math.round(n * 0.05)), inkc = [0, 0, 0];
+    for (let i = 0; i < k; i++) for (let ch = 0; ch < 3; ch++) inkc[ch] += dark[i][ch + 1] / k;
+    const mono = sat < 0.07 || tinted;
+    const old = year && (year < 1850 || (year < 1880 && tinted));            // before photography could catch a riot: a print
+    const style = old || OLD.test(text || "") || ((sat < 0.14 || tinted) && light > 0.3 && mid < 0.5) ? "ink" : mono ? "mono" : "colour";
+    return { style, inkc, box: [bx0, by0, bx1, by1] };
+  }
+
+  function region(d, W, H, x0, y0, x1, y1) {       // the light, contrast, colour and grain where the figure will stand
+    x0 = Math.max(0, Math.round(x0)); y0 = Math.max(0, Math.round(y0)); x1 = Math.min(W - 1, Math.round(x1)); y1 = Math.min(H - 1, Math.round(y1));
+    let n = 0, l = 0, l2 = 0, r = 0, g = 0, b = 0, gr = 0;
+    for (let y = y0; y < y1; y += 2) for (let x = x0; x < x1; x += 2) {
+      const i = (y * W + x) * 4, v = lumOf(d, i);
+      n++; l += v; l2 += v * v; r += d[i]; g += d[i + 1]; b += d[i + 2]; gr += Math.abs(v - lumOf(d, i + 4));
+    }
+    n = Math.max(1, n); l /= n;
+    return { l, s: Math.sqrt(Math.max(1, l2 / n - l * l)), r: r / n, g: g / n, b: b / n, grain: gr / n };
+  }
+
+  function place(x, d, W, H, fimg, look, back) {
+    const [X0, Y0, X1, Y1] = [look.box[0] * W, look.box[1] * H, look.box[2] * W, look.box[3] * H], BW = X1 - X0, BH = Y1 - Y0;
+    const hh = BH * (back ? rnd(0.15, 0.3) : rnd(0.3, 0.6)), ww = hh * fimg.naturalWidth / fimg.naturalHeight;
+    const foot = Y0 + BH * (back ? rnd(0.6, 0.8) : rnd(0.82, 1.02));
+    const left = X0 + rnd(-0.1 * ww, BW - 0.9 * ww), top = foot - hh;
+    const f = canvas(Math.round(ww), Math.round(hh)), fx = f.getContext("2d", { willReadFrequently: true });
+    if (Math.random() < 0.5) { fx.translate(f.width, 0); fx.scale(-1, 1); }
+    fx.drawImage(fimg, 0, 0, f.width, f.height);
+    const id = fx.getImageData(0, 0, f.width, f.height), p = id.data;
+    if (look.style === "ink") {                    // ink into ink: the paper vanishes, the lines take the colour of the print
+      const c = look.inkc;
+      for (let i = 0; i < p.length; i += 4) { const v = lumOf(p, i) / 255; for (let ch = 0; ch < 3; ch++) p[i + ch] = 255 - (1 - v) * (255 - c[ch]); }
+      fx.putImageData(id, 0, 0);
+      x.save(); x.globalCompositeOperation = "multiply"; x.globalAlpha = rnd(0.8, 1); x.drawImage(f, left, top); x.restore();
+      return;
+    }
+    const t = region(d, W, H, left - ww * 0.4, top, left + ww * 1.4, foot);
+    let n = 0, l = 0, l2 = 0;
+    for (let i = 0; i < p.length; i += 4) if (p[i + 3] > 128) { const v = lumOf(p, i); n++; l += v; l2 += v * v; }
+    n = Math.max(1, n); l /= n;
+    const s = Math.sqrt(Math.max(1, l2 / n - l * l));
+    const k = Math.min(1.35, Math.max(0.75, t.s / s)), target = Math.max(8, Math.min(t.l * rnd(0.55, 0.9), t.l - 6));
+    const cast = [t.r / Math.max(1, t.l), t.g / Math.max(1, t.l), t.b / Math.max(1, t.l)];
+    const grain = Math.min(16, Math.max(2, t.grain * 0.6)) * (look.style === "mono" ? 1.3 : 1);
+    for (let i = 0; i < p.length; i += 4) {
+      if (!p[i + 3]) continue;
+      const own = lumOf(p, i), v = (own - l) * k + target, noise = (Math.random() - 0.5) * grain * 2;
+      for (let ch = 0; ch < 3; ch++) {
+        const val = v * (0.35 + 0.65 * cast[ch]) + (look.style === "colour" ? (p[i + ch] - own) * 0.35 : 0);   // the tint of the place, sepia too
+        p[i + ch] = Math.min(255, Math.max(0, val + noise));
+      }
+    }
+    fx.putImageData(id, 0, 0);
+    // a shadow on the ground, then the figure, softened like the picture around it
+    x.save(); x.globalCompositeOperation = "multiply"; x.globalAlpha = rnd(0.25, 0.4); x.filter = "blur(" + Math.max(2, ww * 0.05) + "px)";
+    x.fillStyle = "#000"; x.beginPath(); x.ellipse(left + ww / 2, foot - hh * 0.012, ww * 0.42, hh * 0.03, 0, 0, 7); x.fill(); x.restore();
+    x.save(); x.filter = "blur(" + (0.35 + Math.min(1.2, t.grain * 0.03)).toFixed(2) + "px)"; x.drawImage(f, left, top); x.restore();
+  }
+
+  async function make(it) {
+    const img = await load(it.u);
+    const look = kind(img, it.t, it.y);
+    const mine = figs.filter((f) => f.ink === (look.style === "ink"));
+    if (!mine.length) throw new Error("no figure for " + look.style);
+    const sc = Math.min(1, 1280 / Math.max(img.naturalWidth, img.naturalHeight));
+    const W = Math.round(img.naturalWidth * sc), H = Math.round(img.naturalHeight * sc);
+    const c = canvas(W, H), x = c.getContext("2d", { willReadFrequently: true });
+    x.drawImage(img, 0, 0, W, H);
+    const d = x.getImageData(0, 0, W, H).data;
+    const many = Math.random() < 0.6 ? 1 : Math.random() < 0.7 ? 2 : 3;
+    for (let i = 0; i < many; i++) place(x, d, W, H, await figImg(mine[rint(mine.length)]), look, i < many - 1);   // the far ones first
+    return await new Promise((ok, no) => c.toBlob((b) => (b ? ok(b) : no(new Error("no blob"))), "image/jpeg", 0.88));
+  }
+  return { make };
+})();
+
+/* ---------- the stream ---------- */
 const stage = document.getElementById("s");
-const ready = [];
+const ready = [], shown = [];                      // shown: the last images, for rushes and stutters
 let loading = 0, started = false, beat = 0;
 function next() {
-  if (bots.length && Math.random() < SHARE * Math.min(1, bots.length / 30)) { if (!botDeck.length) botDeck = shuffle(bots.slice()); return botDeck.pop(); }   // few inventions yet: fewer of them
+  const r = Math.random();
+  const inv = INVENTED * Math.min(1, bots.length / 30);
+  const hyb = HYBRID * Math.min(1, figs.length / 12);
+  if (bots.length && r < inv) { if (!botDeck.length) botDeck = shuffle(bots.slice()); return botDeck.pop(); }
+  if (hy.length && r < inv + hyb) {                // old prints get their share of the future
+    const src = hyOld.length && figs.some((f) => f.ink) && Math.random() < 0.3 ? hyOld : hy;
+    return { h: src[rint(src.length)] };
+  }
   if (!deck.length) deck = shuffle(pool.slice());
   return deck.pop();
 }
 function fill() {
-  while (pool.length && loading < 12 && ready.length + loading < 20) { const it = next(); if (!it) break; show(it); }
+  while (pool.length && loading < 14 && ready.length + loading < 34) { const it = next(); if (!it) break; show(it); }
 }
 function show(it) {
   loading++;
+  if (it.h) {                                      // a hybrid: made here, now, never twice the same
+    const real = it.h;
+    HY.make(real).then((blob) => {
+      const im = new Image();
+      im.alt = ""; im.src = URL.createObjectURL(blob); im._blob = true;
+      im._it = { t: "Altered: " + (real.t || ""), a: [real.a, "figures imagined by a machine (Pollinations.AI) for RIOT!"].filter(Boolean).join(" / "),
+        l: (real.l ? real.l + ", " : "") + "altered", k: real.k, s: real.s };
+      const ok = () => { loading--; ready.push(im); begin(); fill(); };
+      im.decode ? im.decode().then(ok, ok) : (im.onload = ok);
+    }).catch(() => { loading--; show(real); });  // when it cannot be altered, the real picture passes as it is
+    return;
+  }
   const im = new Image();
   im.alt = ""; im.decoding = "async"; im.referrerPolicy = "no-referrer";
   let tried = false, over = false, timer;
   const finish = (ok) => {
     if (over) return; over = true; clearTimeout(timer); loading--;
-    if (ok) { im._it = it; ready.push(im); if (!started) { started = true; beat = performance.now(); tick(); } }
+    if (ok) { im._it = it; ready.push(im); begin(); }
     else { const list = it.b ? bots : pool, i = list.indexOf(it); if (i > -1) list.splice(i, 1); }
     fill();
   };
@@ -109,18 +247,60 @@ function show(it) {
   im.onerror = fail;
   im.src = it.u;
 }
+function begin() { if (!started) { started = true; beat = performance.now(); tick(); } }
+
 const seen = [];
-function tick() {
-  if (ready.length) {
-    const im = ready.shift();
-    stage.replaceChildren(im);
-    const it = im._it;
-    seen.push([it.t, it.a, it.l, it.k, it.s, Date.now()]);
-    fill();
+function present(im) { stage.classList.remove("g"); stage.replaceChildren(im); }
+function advance() {                               // the next new image
+  if (!ready.length) return false;
+  const im = ready.shift();
+  present(im);
+  shown.push(im);
+  if (shown.length > 40) { const old = shown.shift(); if (old._blob && !shown.includes(old)) setTimeout(() => URL.revokeObjectURL(old.src), 2000); }
+  const it = im._it;
+  seen.push([it.t, it.a, it.l, it.k, it.s, Date.now()]);
+  fill();
+  return true;
+}
+function glitch(ms) {                              // a small tear in the picture: slices slip, colours jump
+  const im = stage.firstElementChild;
+  if (!im || CALM) return;
+  for (let i = 3 + rint(5); i > 0; i--) {
+    const c = im.cloneNode(), y = rint(92), h = 1 + rint(12);
+    c.style.clipPath = `inset(${y}% 0 ${Math.max(0, 100 - y - h)}% 0)`;
+    c.style.transform = `translateX(${((Math.random() - 0.5) * 18).toFixed(1)}%)`;
+    if (Math.random() < 0.3) c.style.mixBlendMode = "difference";
+    if (Math.random() < 0.35) c.style.filter = `hue-rotate(${rint(360)}deg) saturate(3)`;
+    stage.append(c);
   }
-  beat += STEP;
+  stage.classList.add("g");
+  setTimeout(() => { if (stage.firstElementChild === im) { stage.classList.remove("g"); while (stage.children.length > 1) stage.lastElementChild.remove(); } }, ms);
+}
+let rush = 0, stutter = 0;
+function tick() {
+  let delay = STEP;
+  if (stutter > 0) {                               // the tape jams: back and forth between the last two
+    stutter--;
+    const a = shown[shown.length - 1], b = shown[shown.length - 2];
+    if (a && b) present(stutter % 2 ? b : a);
+    delay = 55 + rint(60);
+  } else if (rush > 0) {                           // a rush: the images pour in
+    rush--;
+    if (!advance() && shown.length) present(shown[rint(shown.length)]);   // short of new ones, recent ones come back
+    delay = 55 + rint(85);
+  } else {
+    advance();
+    const r = Math.random();
+    if (r < P_JAM) {                               // a jam: the picture stays, sometimes it tears
+      delay = 1200 + rint(3200);
+      if (Math.random() < 0.5) setTimeout(() => glitch(120 + rint(380)), rint(delay - 500));
+    } else if (!CALM && r < P_JAM + P_RUSH) rush = 6 + rint(24);
+    else if (!CALM && r < P_JAM + P_RUSH + P_STUTTER) stutter = 4 + 2 * rint(4);
+    else if (Math.random() < P_GLITCH) glitch(90 + rint(260));
+  }
+  beat += delay;
   const now = performance.now();
-  if (beat < now - STEP) beat = now + STEP;        // after a pause (hidden tab) the beat starts again
+  if (beat < now - STEP) beat = now + delay;       // after a pause (hidden tab) the beat starts again
   setTimeout(tick, beat - now);
 }
 function flushSeen() {
@@ -158,7 +338,7 @@ setInterval(dream, RELOAD);
 })();
 setInterval(flushSeen, 20000);
 addEventListener("pagehide", flushSeen);
-if (/debug/.test(location.search)) window.RIOT = { pool, ready, bots };
+if (/debug/.test(location.search)) window.RIOT = { pool, ready, bots, figs, hy, hyOld, shown, HY };
 })();
 </script>
 </body>
