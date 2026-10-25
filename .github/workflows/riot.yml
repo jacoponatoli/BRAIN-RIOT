@@ -45,6 +45,18 @@ jobs:
           node-version: 20
       - run: npm install --no-save --prefix crawler sharp@0.33.5
       - run: node crawler/robots.mjs robots-out 25
+      # the figures (robots, cyborgs alone on white) are cut out, to be slipped into real pictures by the page
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.u2net
+          key: rembg-isnet-general-use-1
+      - run: pip install "rembg[cpu]" pillow
+        continue-on-error: true
+      - run: python crawler/figures.py robots-out
+        continue-on-error: true
       - env:
           GH_TOKEN: ${{ github.token }}
         run: |
