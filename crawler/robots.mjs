@@ -4,9 +4,11 @@
 // (Pollinations.AI, free: one image every 45 seconds), cuts away the logo and keeps the images
 // on the "robots" branch of the repository, with robots.json listing them for the page.
 // Scenes already imagined elsewhere (crawler/robots-seeds.json) are picked up first: they come back at once.
+// It also has the machine imagine single figures (robots, cyborgs) alone on white: crawler/figures.py cuts them out,
+// and the page slips them into the real photographs and engravings of the flow.
 //
 // Usage: node crawler/robots.mjs <folder of the robots branch> [minutes]
-//        node crawler/robots.mjs --seeds <n>      writes n new scenes to imagine elsewhere
+//        node crawler/robots.mjs --seeds <n> [cut|ink]      writes n new scenes (or figures) to imagine elsewhere
 
 import fs from "node:fs";
 import path from "node:path";
@@ -106,6 +108,23 @@ const LOOK = [
 ];
 const SIZES = [[1280, 720], [1280, 720], [1024, 1024], [1080, 1350], [1440, 960]];
 
+/* ---------------- the figures, to slip into real pictures ---------------- */
+const FIG_WHO = [
+  "a scratched black metal humanoid robot", "a rusty cyborg, half human and half machine, with mechanical arms",
+  "an android with torn synthetic skin showing the circuits", "a battered silver humanoid robot with visible joints and cables",
+  "a humanoid robot in a black hoodie and gas mask", "a metal robot with exposed wiring wearing a yellow high-visibility vest",
+  "a robot built from scrap metal and car parts", "a slim black robot with a cracked screen instead of a face",
+  "a four-legged robot dog", "a heavy armoured robot", "a cyborg teenager with robotic legs", "a skeletal chrome robot with glowing red eyes",
+];
+const FIG_DO = [
+  "throwing a stone", "running", "raising a fist", "holding a flag", "holding a burning molotov cocktail", "kicking a tear gas canister",
+  "crouching behind a makeshift shield", "walking", "standing and watching", "carrying a traffic sign as a shield", "throwing a bottle", "shouting",
+];
+const INK = [
+  "a 19th century wood engraving", "an 1870s newspaper engraving", "an 18th century etching", "a lithograph from 1848", "a pen and ink drawing",
+  "an 1890s illustrated newspaper engraving",
+];
+
 function scene() {
   const what = pick(DO).replace("{p}", pick(POLICE));
   const when = pick(WHEN);
@@ -113,21 +132,30 @@ function scene() {
 }
 
 /* ---------------- the machine ---------------- */
+const address = (prompt, w, h, seed) => "https://image.pollinations.ai/prompt/" + encodeURIComponent(prompt) +
+  "?" + new URLSearchParams({ width: String(w), height: String(h), seed: String(seed), nologo: "true", safe: "true" });
 function invent() {                                               // a new scene, and the address where the machine imagines it
   const text = scene(), look = pick(LOOK), [w, h] = pick(SIZES), seed = 1 + rint(2 ** 31 - 2);
-  const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(`robot riot: ${text}, ${look}, the rioters are clearly machines with metal bodies, photorealistic`) +
-    "?" + new URLSearchParams({ width: String(w), height: String(h), seed: String(seed), nologo: "true", safe: "true" });
+  const url = address(`robot riot: ${text}, ${look}, the rioters are clearly machines with metal bodies, photorealistic`, w, h, seed);
   return { url, text, look, seed };
 }
+function figure(kind) {                                           // a single being, alone on white, to cut out
+  const text = `${pick(FIG_WHO)} ${pick(FIG_DO)}`, seed = 1 + rint(2 ** 31 - 2);
+  const look = kind === "ink" ? pick(INK) : "cutout";
+  const prompt = kind === "ink"
+    ? `${look} of ${text}, black ink lines and cross-hatching on white paper, full figure from head to feet, isolated on plain white paper, no background, no frame`
+    : `full body photograph of ${text}, whole figure from head to feet, isolated on a plain white background, even studio light, sharp, photorealistic`;
+  return { url: address(prompt, 768, 1024, seed), text, look, seed, kind };
+}
 let sharp;
-async function imagine(url, timeout) {
+async function imagine(url, timeout, whole) {
   const r = await fetch(url, { headers: { "User-Agent": "RIOT-art-project/1.0 (https://jacoponatoli.github.io/PROTEST/)" }, signal: AbortSignal.timeout(timeout) });
   const type = r.headers.get("content-type") || "";
   if (!r.ok || !type.startsWith("image/")) {
     const body = (await r.text().catch(() => "")).slice(0, 300);
     const wait = /retry after (\d+)/i.exec(body);
     const err = new Error("HTTP " + r.status + " " + body.replace(/\s+/g, " ").slice(0, 140));
-    err.wait = wait ? (+wait[1] + 2) * 1000 : r.status === 402 || r.status === 429 ? GAP : 0;
+    err.wait = wait ? (+wait[1] + 2) * 1000 : r.status === 402 || r.status === 429 || r.status === 503 ? GAP : 0;
     throw err;
   }
   const buf = Buffer.from(await r.arrayBuffer());
@@ -135,27 +163,41 @@ async function imagine(url, timeout) {
   sharp ||= (await import("sharp")).default;
   const img = sharp(buf);
   const m = await img.metadata();
-  const cut = Math.max(40, Math.round(m.height * 0.07));          // the logo sits in the bottom right corner
-  const out = await img.extract({ left: 0, top: 0, width: m.width, height: m.height - cut })
-    .jpeg({ quality: 84, mozjpeg: true }).toBuffer();
+  let out, h = m.height;
+  if (whole) {                                                    // a figure keeps its feet: the logo is painted over with the background
+    const lw = Math.round(m.width * 0.34), lh = Math.max(36, Math.round(m.height * 0.065));
+    const { data } = await sharp(buf).extract({ left: 0, top: m.height - 4, width: Math.round(m.width * 0.3), height: 4 }).raw().toBuffer({ resolveWithObject: true });
+    let r0 = 0, g0 = 0, b0 = 0, n = data.length / 3;
+    for (let i = 0; i < data.length; i += 3) { r0 += data[i]; g0 += data[i + 1]; b0 += data[i + 2]; }
+    const patch = await sharp({ create: { width: lw, height: lh, channels: 3, background: { r: Math.round(r0 / n), g: Math.round(g0 / n), b: Math.round(b0 / n) } } }).png().toBuffer();
+    out = await sharp(buf).composite([{ input: patch, left: m.width - lw, top: m.height - lh }]).jpeg({ quality: 90 }).toBuffer();
+  } else {
+    const cut = Math.max(40, Math.round(m.height * 0.07));        // the logo sits in the bottom right corner
+    h = m.height - cut;
+    out = await img.extract({ left: 0, top: 0, width: m.width, height: h }).jpeg({ quality: 84, mozjpeg: true }).toBuffer();
+  }
   const stats = await sharp(out).stats();
   if (stats.channels.slice(0, 3).every((c) => c.max - c.min < 20)) throw new Error("blank image");
-  return { out, w: m.width, h: m.height - cut };
+  return { out, w: m.width, h };
 }
 
-if (SEEDS) {                                                      // scenes for a browser to imagine
-  console.log(JSON.stringify(Array.from({ length: +(process.argv[3] || 30) }, invent), null, 0));
+if (SEEDS) {                                                      // scenes, or figures, for a browser to imagine
+  const kind = process.argv[4];
+  console.log(JSON.stringify(Array.from({ length: +(process.argv[3] || 30) }, () => kind ? figure(kind) : invent()), null, 0));
   process.exit(0);
 }
 
 /* ---------------- go ---------------- */
 fs.mkdirSync(path.join(OUT, "img"), { recursive: true });
+fs.mkdirSync(path.join(OUT, "raw"), { recursive: true });
 const FILE = path.join(OUT, "robots.json");
 let data = { items: [] };
 try { data = JSON.parse(fs.readFileSync(FILE, "utf8")); } catch (e) {}
 data.items ||= [];
+data.figures ||= [];                                              // [url, "cut" | "ink", text]: cut out by crawler/figures.py
+data.pending ||= [];                                              // figures waiting to be cut out
 data.seeds ||= {};                                                // seed -> tries, for the scenes imagined elsewhere
-const report = { at: new Date().toISOString(), harvested: 0, made: 0, failed: 0, errors: [] };
+const report = { at: new Date().toISOString(), harvested: 0, made: 0, figures: 0, failed: 0, errors: [] };
 const fail = (e) => {
   report.failed++;
   report.errors.push(String(e.message || e).slice(0, 160));
@@ -164,11 +206,24 @@ const fail = (e) => {
 };
 const keep = (s, out, w, h) => {
   const name = Date.now().toString(36) + "-" + s.seed.toString(36) + ".jpg";
+  if (s.kind) {                                                   // a figure: raw, for crawler/figures.py
+    fs.writeFileSync(path.join(OUT, "raw", name), out);
+    data.pending.push({ file: name, kind: s.kind, text: s.text, look: s.look });
+    report.figures++;
+    console.log("+ figure", s.kind, name, s.text);
+    return;
+  }
   fs.writeFileSync(path.join(OUT, "img", name), out);
   data.items.push([RAW + "img/" + name, CDN + "img/" + name, "Invented riot: " + s.text, "imagined by a machine (Pollinations.AI) for RIOT!",
     "invented", RAW + "img/" + name, "RIOT! robots", new Date().getUTCFullYear(), "robots", s.look, w, h]);
   console.log("+", name, s.text.slice(0, 90));
 };
+const count = (k) => data.figures.filter((f) => f[1] === k).length + data.pending.filter((f) => f.kind === k).length;
+function nextTask() {                                             // figures first while they are few, then mostly scenes
+  const r = Math.random(), cut = count("cut"), ink = count("ink");
+  const pc = cut < 80 ? 0.45 : 0.15, pi = ink < 40 ? 0.25 : 0.1;
+  return r < pc ? figure("cut") : r < pc + pi ? figure("ink") : invent();
+}
 
 // 1. the scenes already imagined elsewhere come back at once
 let seeds = [];
@@ -177,7 +232,7 @@ for (const s of seeds) {
   const k = String(s.seed);
   if (data.seeds[k] === "done" || data.seeds[k] >= 3 || Date.now() + 200e3 > DEADLINE) continue;
   try {
-    const { out, w, h } = await imagine(s.url, 30e3);
+    const { out, w, h } = await imagine(s.url, 30e3, !!s.kind);
     keep(s, out, w, h);
     data.seeds[k] = "done";
     report.harvested++;
@@ -185,13 +240,13 @@ for (const s of seeds) {
   await sleep(1000);
 }
 
-// 2. new scenes, patiently: the free machine answers when it can
+// 2. new scenes and figures, patiently: the free machine answers when it can
 let next = Date.now(), streak = 0;
 while (Date.now() + 100e3 < DEADLINE) {
   if (next > Date.now()) await sleep(next - Date.now());
-  const s = invent();
+  const s = nextTask();
   try {
-    const { out, w, h } = await imagine(s.url, 75e3);
+    const { out, w, h } = await imagine(s.url, 75e3, !!s.kind);
     keep(s, out, w, h);
     report.made++;
     streak = 0;
