@@ -112,7 +112,7 @@ const SIZES = [[1280, 720], [1280, 720], [1024, 1024], [1080, 1350], [1440, 960]
 const FIG_WHO = [
   "a scratched black metal humanoid robot", "a rusty cyborg, half human and half machine, with mechanical arms",
   "an android with torn synthetic skin showing the circuits", "a battered silver humanoid robot with visible joints and cables",
-  "a humanoid robot in a black hoodie and gas mask", "a metal robot with exposed wiring wearing a yellow high-visibility vest",
+  "a humanoid robot in a black hoodie and gas mask", "a chrome robot with a mechanical head and exposed wiring, wearing a yellow high-visibility vest",
   "a robot built from scrap metal and car parts", "a slim black robot with a cracked screen instead of a face",
   "a four-legged robot dog", "a heavy armoured robot", "a cyborg teenager with robotic legs", "a skeletal chrome robot with glowing red eyes",
 ];
