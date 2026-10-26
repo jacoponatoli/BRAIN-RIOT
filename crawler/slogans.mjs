@@ -48,7 +48,7 @@ const CLASSICS = [
 const CHANT = /\bchant|\bslogan|\bbanner|\bplacard|\bsigns? (read|saying)|\bscand(ai|an|é|e[rz]|iv|end|is|it|eer)|aux cris|au cri d|banderole|pancarte|\bgrido|al grido|\bcori\b|striscion|cartell|\bgrit[oa]|\bcorea(r|b|n)|consigna|pancarta|skandier|sprechch|\bparolen\b|palavras? de ordem|faixa|spandoek|leuze/i;
 const CHANT_DE = /transparent/i;                     // a banner in German, a quality in English
 // calls to kill or hurt, and words against a people, a faith, a community: never
-const NEVER = /\b(kill|killing|killed|death to|murder|hang|lynch|behead|shoot (them|the)|morte a[il]?|mort aux?|mort à|tod (den|dem|der)|muerte a|morte aos|mata[rd]?|ammazza|gas (the|them)|heil|sieg|14 ?88|white power|go home|deport|boats|send them back|jew|jews|juif|juive|ebre[oi]|fag|kike|spic|chink|tranny|whore|puta|troia|frocio|pédé|isis)\b|\b(tötet|uccid|exterminat|genocid|intifada|jihad|hamas|hezbollah|hizbollah|daesh|qaeda|taliban|remigra|rapefugee|invasi|invader|ausländer|stranieri|immigr|migrant|islam|muslim|musulman|zionis|sionis|christ|nigg|untermensch)|allah|bismi/i;
+const NEVER = /\b(kill|killing|killed|death to|murder|hang|lynch|behead|shoot (them|the)|morte a[il]?|mort aux?|mort à|tod (den|dem|der)|muerte a|morte aos|mata[rd]?|ammazza|gas (the|them)|heil|sieg|14 ?88|white power|go home|deport|boats|send them back|jew|jews|juif|juive|ebre[oi]|fag|kike|spic|chink|tranny|whore|puta|troia|frocio|pédé|isis|murdabad|arabs?|arabes|árabes?|arabi|noirs|blacks|negr[oi]s?|negros|roms?|gitans?|zingari|gypsies|asians|chinois|cinesi|hindus|sikhs|pakis?)\b|\b(tötet|uccid|exterminat|genocid|intifada|jihad|hamas|hezbollah|hizbollah|daesh|qaeda|taliban|remigra|rapefugee|invasi|invader|ausländer|stranieri|immigr|migrant|islam|muslim|musulman|zionis|sionis|christ|nigg|untermensch)|allah|bismi/i;
 // a quote about slogans is not a slogan; a fragment that starts with "of", "de", "di"... is not one either
 const META = /slogan|consign|\bchant|banner|striscion|pancart|\bcori\b|parole d'ordine|palavras de ordem/i;
 const FRAGMENT = /^(de|del|di|da|dal|of|to|for|in|on|à|au|en|con|per|por|para|du|des|from|with|von|zu|van|op)\s/;
@@ -61,6 +61,7 @@ function ok(s, lang) {
   if (NEVER.test(s) || (lang === "en" && /\b(die|dead)\b/i.test(s)) || /https?:|@|#\d/.test(s)) return false;
   if (META.test(s) || FRAGMENT.test(s)) return false;
   if (w === 1 && !/[!¡]/.test(s) && s !== s.toUpperCase()) return false;   // one word alone, only if shouted
+  if (lang === "en" && /^\p{Ll}/u.test(s) && !/!/.test(s)) return false;   // in English a chant is quoted with a capital; a small letter is a scrap of the report
   return true;
 }
 
