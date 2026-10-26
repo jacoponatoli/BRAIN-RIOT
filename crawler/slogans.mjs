@@ -45,15 +45,22 @@ const CLASSICS = [
 
 /* ---------------- what is a slogan, what is not ---------------- */
 // the headline must speak of chanting, banners, signs, slogans
-const CHANT = /\bchant|\bslogan|\bbanner|\bplacard|\bsigns? (read|saying)|\bscand|aux cris|au cri d|banderole|pancarte|\bgrido|al grido|scandiv|scandend|\bcori\b|striscion|cartell|\bgrito|corea|consigna|pancarta|skandier|sprechch|parole[n]?\b|transparent|gritava|gritando|palavras? de ordem|faixa|spandoek|leuze/i;
+const CHANT = /\bchant|\bslogan|\bbanner|\bplacard|\bsigns? (read|saying)|\bscand(ai|an|é|e[rz]|iv|end|is|it|eer)|aux cris|au cri d|banderole|pancarte|\bgrido|al grido|\bcori\b|striscion|cartell|\bgrit[oa]|\bcorea(r|b|n)|consigna|pancarta|skandier|sprechch|\bparolen\b|palavras? de ordem|faixa|spandoek|leuze/i;
+const CHANT_DE = /transparent/i;                     // a banner in German, a quality in English
 // calls to kill or hurt, and words against a people, a faith, a community: never
-const NEVER = /\b(kill|killing|killed|death to|murder|hang|lynch|behead|shoot (them|the)|morte a[il]?|mort aux?|mort à|tod (den|dem|der)|tötet|muerte a|morte aos|mata[rd]?|ammazza|uccid|gas (the|them)|exterminat|genocide|intifada|jihad|allahu|heil|sieg|14 ?88|white power|remigra|rapefugee|invasion|invaders?|go home|deport|boats|send them back|ausländer|stranieri|immigr|migrant|islam|muslim|jew|jews|juif|juive|ebre[oi]|zionis|sionis|christ|nigg|fag|kike|spic|chink|untermensch|tranny|whore|puta|troia|frocio|pédé)\b/i;
+const NEVER = /\b(kill|killing|killed|death to|murder|hang|lynch|behead|shoot (them|the)|morte a[il]?|mort aux?|mort à|tod (den|dem|der)|muerte a|morte aos|mata[rd]?|ammazza|gas (the|them)|heil|sieg|14 ?88|white power|go home|deport|boats|send them back|jew|jews|juif|juive|ebre[oi]|fag|kike|spic|chink|tranny|whore|puta|troia|frocio|pédé|isis)\b|\b(tötet|uccid|exterminat|genocid|intifada|jihad|hamas|hezbollah|hizbollah|daesh|qaeda|taliban|remigra|rapefugee|invasi|invader|ausländer|stranieri|immigr|migrant|islam|muslim|musulman|zionis|sionis|christ|nigg|untermensch)|allah|bismi/i;
+// a quote about slogans is not a slogan; a fragment that starts with "of", "de", "di"... is not one either
+const META = /slogan|consign|\bchant|banner|striscion|pancart|\bcori\b|parole d'ordine|palavras de ordem/i;
+const FRAGMENT = /^(de|del|di|da|dal|of|to|for|in|on|à|au|en|con|per|por|para|du|des|from|with|von|zu|van|op)\s/;
+const key = (s) => s.toLowerCase().normalize("NFKD").replace(/[^\p{L}\p{N}]+/gu, "");
 const clean = (s) => s.replace(/\s+/g, " ").replace(/^[\s"'“”«»„‘’\-–—:]+|[\s"'“”«»„‘’\-–—:,;]+$/g, "").trim();
 function ok(s, lang) {
   const w = s.split(/\s+/).length, letters = (s.match(/\p{L}/gu) || []).length;
   if (s.length < 3 || s.length > 70 || w > 9) return false;
   if (letters < 3 && !/^\d{4}$/.test(s)) return false;
   if (NEVER.test(s) || (lang === "en" && /\b(die|dead)\b/i.test(s)) || /https?:|@|#\d/.test(s)) return false;
+  if (META.test(s) || FRAGMENT.test(s)) return false;
+  if (w === 1 && !/[!¡]/.test(s) && s !== s.toUpperCase()) return false;   // one word alone, only if shouted
   return true;
 }
 
@@ -106,16 +113,17 @@ let data = {}, ban = [];
 try { data = JSON.parse(fs.readFileSync(FILE, "utf8")); } catch (e) {}
 try { ban = fs.readFileSync(BAN_FILE, "utf8").split("\n").map((l) => l.trim().toLowerCase()).filter((l) => l && !l.startsWith("#")); } catch (e) {}
 const banned = (s) => ban.some((b) => s.toLowerCase().includes(b));
-const current = new Map((data.current || []).map((c) => [c[0].toLowerCase(), c]));
-const classicSet = new Set(CLASSICS.map((c) => c[0].toLowerCase()));
+// the words already kept pass the filter again at every round: when the filter learns, the old words obey too
+const current = new Map((data.current || []).filter((c) => ok(c[0], c[4] || "en")).map((c) => [key(c[0]), c]));
+const classicSet = new Set(CLASSICS.map((c) => key(c[0])));
 const report = { at: new Date().toISOString(), headlines: 0, found: 0, fresh: 0, errors: [] };
-const take = (text, source, link, lang) => {
-  const k = text.toLowerCase();
+const take = (text, source, link, lang, why = "") => {
+  const k = key(text);
   report.found++;
   if (!ok(text, lang) || banned(text) || classicSet.has(k) || current.has(k)) return;
-  current.set(k, [text, source, link, new Date().toISOString().slice(0, 10), lang]);
+  current.set(k, [text, source.replace(/[\s\-–—|·]+$/, ""), link, new Date().toISOString().slice(0, 10), lang]);
   report.fresh++;
-  console.log("+", JSON.stringify(text), "—", source);
+  console.log("+", JSON.stringify(text), "—", source, why ? "\n    ← " + why.slice(0, 160) : "");
 };
 
 for (const [hl, gl, ceid, queries] of NEWS) {
@@ -129,8 +137,8 @@ for (const [hl, gl, ceid, queries] of NEWS) {
       try {
         for (const it of items(await get(url))) {
           report.headlines++;
-          if (!CHANT.test(it.title)) continue;
-          for (const s of quotes(it.title)) take(s, it.source || new URL(it.link || url).hostname, it.link, lang);
+          if (!CHANT.test(it.title) && !(lang === "de" && CHANT_DE.test(it.title))) continue;
+          for (const s of quotes(it.title)) take(s, it.source || new URL(it.link || url).hostname, it.link, lang, it.title);
         }
       } catch (e) { report.errors.push(String(e.message || e).slice(0, 120)); }
       await sleep(1500);
