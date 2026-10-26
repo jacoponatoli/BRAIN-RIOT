@@ -17,7 +17,7 @@ import fs from "node:fs";
 
 const MINUTES = +(process.argv[2] || process.env.RIOT_MINUTES || 20);
 const DEADLINE = Date.now() + MINUTES * 60e3;
-const UA = "RIOT-art-project/1.0 (https://jacoponatoli.github.io/PROTEST/; artwork by Jacopo Natoli) node-fetch";
+const UA = "BRAIN-RIOT-art-project/1.0 (https://jacoponatoli.github.io/BRAIN-RIOT/; artwork by Jacopo Natoli) node-fetch";
 const W = 1280;
 const CORPUS = "riot-corpus.json", SAMPLE = "riot-sample.json", STATE = "riot-state.json";
 const MAX_ITEMS = 60000, PER_EVENT = 200, SAMPLE_SIZE = 600;
