@@ -1,0 +1,4 @@
+# BRAIN RIOT — words never to show on the screen.
+# One per line; a line bans every slogan that contains it (capitals do not matter).
+# Lines starting with # are notes. The robot reads this file at every round.
+stop the boats
