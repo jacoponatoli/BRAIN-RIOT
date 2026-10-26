@@ -29,8 +29,9 @@ html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden;cursor
 
 const STEP = 500;                                  // as a rule every image stays half a second
 const RELOAD = 30 * 60e3;                          // look at the corpus again every half hour
-const RAW = "https://raw.githubusercontent.com/jacoponatoli/PROTEST/main/";
-const BOTS = "https://raw.githubusercontent.com/jacoponatoli/PROTEST/robots/";
+const RAW = "https://raw.githubusercontent.com/jacoponatoli/BRAIN-RIOT/main/";
+const BOTS = "https://raw.githubusercontent.com/jacoponatoli/BRAIN-RIOT/robots/";
+const moved = (u) => typeof u === "string" ? u.replace(/jacoponatoli\/PROTEST([/@])/, "jacoponatoli/BRAIN-RIOT$1") : u;   // the work was called PROTEST, then RIOT!
 const INVENTED = 0.15;                             // riots wholly invented by the machine
 const HYBRID = 0.2;                                // real pictures with beings of the future slipped in
 const P_RUSH = 0.02, P_JAM = 0.012, P_STUTTER = 0.01, P_GLITCH = 0.02;   // now and then, per beat
@@ -80,11 +81,11 @@ async function dream() {                           // the invented riots, and th
     for (const x of d.items || []) {
       if (!x || !x[0] || botHave.has(x[0])) continue;
       botHave.add(x[0]);
-      const it = { u: x[0], o: x[1], t: x[2], a: x[3], l: x[4], k: x[5], s: x[6], b: 1 };
+      const it = { u: moved(x[0]), o: moved(x[1]), t: x[2], a: x[3], l: x[4], k: moved(x[5]), s: x[6], b: 1 };
       bots.push(it);
       botDeck.splice(rint(botDeck.length + 1), 0, it);
     }
-    for (const f of d.figures || []) if (f && f[0] && !figHave.has(f[0])) { figHave.add(f[0]); figs.push({ u: f[0], ink: f[1] === "ink", t: f[2] }); }
+    for (const f of d.figures || []) if (f && f[0] && !figHave.has(f[0])) { figHave.add(f[0]); figs.push({ u: moved(f[0]), ink: f[1] === "ink", t: f[2] }); }
   } catch (e) {}
 }
 
