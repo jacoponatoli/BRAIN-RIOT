@@ -10,7 +10,7 @@ import json, os, sys
 from PIL import Image, ImageOps
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else "robots-out"
-REPO = os.environ.get("GITHUB_REPOSITORY", "jacoponatoli/PROTEST")
+REPO = os.environ.get("GITHUB_REPOSITORY", "jacoponatoli/BRAIN-RIOT")
 RAW = f"https://raw.githubusercontent.com/{REPO}/robots/"
 MAX = {"cut": 400, "ink": 200}          # the oldest figures give way to the new ones
 
