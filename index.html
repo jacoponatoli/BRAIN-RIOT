@@ -7,23 +7,34 @@
 <link rel="license" href="credits.html">
 <link rel="preconnect" href="https://upload.wikimedia.org">
 <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&display=swap">
 <style>
 html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden;cursor:none}
 #s,#s img{position:fixed;inset:0;width:100%;height:100%}
 #s img{object-fit:contain;display:block}
 #s.g img:first-child{animation:j .09s steps(2) infinite}
 @keyframes j{0%{transform:translate(-1.2%,.4%) skewX(-3deg);filter:contrast(1.8) saturate(2.2)}50%{transform:translate(1.4%,-.3%) scaleY(1.04);filter:contrast(1.3) invert(.08) hue-rotate(25deg)}}
+#w{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;pointer-events:none;visibility:hidden}
+#w.on{visibility:visible}
+#w span{font:400 100px/.9 Anton,Impact,"Arial Narrow Bold","Arial Black",sans-serif;text-transform:uppercase;text-align:center;white-space:nowrap;color:#fff;-webkit-text-stroke:.03em #000;paint-order:stroke fill;text-shadow:0 0 .14em rgba(0,0,0,.6)}
+#w.x span{font-family:"PingFang SC","Hiragino Sans","Noto Sans CJK SC","Microsoft YaHei","Noto Sans Arabic",system-ui,sans-serif;font-weight:900;line-height:1.1}
+#w.r span{color:#ff2a14}
+#w.k span{color:#000;-webkit-text-stroke:.025em #fff;text-shadow:0 0 .12em rgba(255,255,255,.55)}
 </style>
 </head>
 <body>
 <div id="s"></div>
+<div id="w"><span></span></div>
 <script>
 /* BRAIN RIOT — Jacopo Natoli, 2026
    Riots of the whole world and of every time: clashes with the police, barricades, tear gas, fires.
    A crawler walks further into the open archives every three hours (crawler/riot.mjs) and the corpus keeps growing.
    Meanwhile a machine invents riots of robots, cyborgs and androids (crawler/robots.mjs), and figures of them
    that the page slips, each time differently, into the real photographs and engravings: hybrids.
-   Half a second each, as a rule; now and then a rush, a jam, a stutter, a glitch. Credits: credits.html */
+   Half a second each, as a rule; now and then a rush, a jam, a stutter, a glitch.
+   And now and then, rarely, words, big, over the images: classic slogans, and the words of the protests of these days,
+   picked up from the news every three hours (crawler/slogans.mjs). Credits: credits.html */
 (() => {
 "use strict";
 
@@ -304,6 +315,65 @@ function tick() {
   if (beat < now - STEP) beat = now + delay;       // after a pause (hidden tab) the beat starts again
   setTimeout(tick, beat - now);
 }
+/* ---------- words: now and then, big, over the images ---------- */
+const WORDS_GAP = [22e3, 80e3];                    // a rare event, about once a minute, never on a clock
+const wbox = document.getElementById("w"), wspan = wbox.firstElementChild;
+let words = { classics: [], current: [] }, wdeck = [];
+async function listen() { const d = await load("slogans.json"); if (d && (d.classics || d.current)) words = d; }
+function pickWords() {
+  const cur = words.current || [], cl = words.classics || [];
+  if (cur.length && (Math.random() < 0.55 || !cl.length)) {   // the words of these days, the newest more often
+    const c = cur[Math.floor(Math.pow(Math.random(), 1.8) * cur.length)];
+    return { t: c[0], a: c[1], k: c[2], l: "words of " + (c[3] || "these days") };
+  }
+  if (!wdeck.length) wdeck = shuffle(cl.slice());
+  const c = wdeck.pop();
+  return c && { t: c[0], a: c[1] || "", k: "", l: "a classic" };
+}
+function lay(lines) { wspan.textContent = ""; lines.forEach((l, i) => { if (i) wspan.append(document.createElement("br")); wspan.append(l); }); }
+function fit(text) {                               // as big as the screen allows, on one to five lines
+  text = text.replace(/\s+([:;!?»”])/g, "\u00a0$1").replace(/([«“¡¿])\s+/g, "$1\u00a0");   // punctuation stays with its word
+  const ws = text.split(/[ \t\n]+/), W = innerWidth, H = innerHeight;
+  let best = null;
+  for (let n = 1; n <= Math.min(5, ws.length); n++) {
+    const lines = [], per = text.length / n;
+    let cur = "";
+    for (const w of ws) {
+      if (cur && cur.length + 1 + w.length > per * 1.1 && lines.length < n - 1) { lines.push(cur); cur = w; }
+      else cur = cur ? cur + " " + w : w;
+    }
+    lines.push(cur);
+    lay(lines);
+    wspan.style.fontSize = "100px";
+    const r = wspan.getBoundingClientRect();
+    const size = 100 * Math.min(W * 0.94 / r.width, H * 0.88 / r.height);
+    if (!best || size > best.size) best = { size, lines };
+  }
+  lay(best.lines);
+  wspan.style.fontSize = best.size.toFixed(1) + "px";
+}
+function shout(again) {
+  const w = pickWords();
+  if (!w) return setTimeout(shout, 15e3);
+  const r = Math.random();
+  wbox.className = "on" + (r < 0.15 ? " r" : r < 0.27 ? " k" : "") + (/[\u0590-\u08ff\u2e80-\uffef]/.test(w.t) ? " x" : "");
+  fit(w.t);
+  seen.push([w.t, w.a, w.l, w.k, "BRAIN RIOT words", Date.now()]);
+  if (!CALM && Math.random() < 0.3) {              // sometimes the words flicker as they arrive
+    setTimeout(() => wbox.classList.remove("on"), 90);
+    setTimeout(() => wbox.classList.add("on"), 160);
+  }
+  const stay = Math.min(9000, Math.max(1100, (900 + 330 * w.t.split(/\s+/).length) * rnd(0.55, 2)));   // longer, shorter
+  setTimeout(() => {
+    wbox.className = "";
+    if (!again && Math.random() < 0.25) setTimeout(() => shout(true), rnd(300, 4000));   // now and then two in a row
+    else setTimeout(shout, rnd(...WORDS_GAP));
+  }, stay);
+}
+listen().then(() => document.fonts && document.fonts.load("100px Anton")).catch(() => {})
+  .finally(() => setTimeout(shout, rnd(8e3, 30e3)));
+setInterval(listen, RELOAD);
+
 function flushSeen() {
   if (!seen.length) return;
   try { localStorage.setItem("PROTEST!seen", JSON.stringify(JSON.parse(localStorage.getItem("PROTEST!seen") || "[]").concat(seen.splice(0)).slice(-1500))); }
@@ -339,7 +409,7 @@ setInterval(dream, RELOAD);
 })();
 setInterval(flushSeen, 20000);
 addEventListener("pagehide", flushSeen);
-if (/debug/.test(location.search)) window.RIOT = { pool, ready, bots, figs, hy, hyOld, shown, HY };
+if (/debug/.test(location.search)) window.RIOT = { pool, ready, bots, figs, hy, hyOld, shown, HY, words: () => words, shout };
 })();
 </script>
 </body>
