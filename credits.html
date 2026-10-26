@@ -50,10 +50,10 @@ for (let i = rows.length - 1; i >= 0; i--) {
 }
 document.getElementById("l").innerHTML = out.join("");
 document.getElementById("none").hidden = out.length > 0;
-fetch("https://raw.githubusercontent.com/jacoponatoli/PROTEST/main/riot-sample.json?v=" + Math.floor(Date.now() / 600e3))
+fetch("https://raw.githubusercontent.com/jacoponatoli/BRAIN-RIOT/main/riot-sample.json?v=" + Math.floor(Date.now() / 600e3))
   .then(r => r.json()).then(d => { document.getElementById("n").textContent = Number(d.total || 0).toLocaleString("en"); })
   .catch(() => { document.getElementById("n").textContent = "many"; });
-fetch("https://raw.githubusercontent.com/jacoponatoli/PROTEST/robots/robots.json?v=" + Math.floor(Date.now() / 600e3))
+fetch("https://raw.githubusercontent.com/jacoponatoli/BRAIN-RIOT/robots/robots.json?v=" + Math.floor(Date.now() / 600e3))
   .then(r => r.json()).then(d => {
     document.getElementById("b").textContent = Number(d.total || 0).toLocaleString("en");
     document.getElementById("f").textContent = Number((d.figures || []).length).toLocaleString("en");
