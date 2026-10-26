@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>RIOT!</title>
+<title>BRAIN RIOT</title>
 <link rel="license" href="credits.html">
 <link rel="preconnect" href="https://upload.wikimedia.org">
 <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin>
@@ -18,7 +18,7 @@ html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden;cursor
 <body>
 <div id="s"></div>
 <script>
-/* RIOT! — Jacopo Natoli, 2026
+/* BRAIN RIOT — Jacopo Natoli, 2026
    Riots of the whole world and of every time: clashes with the police, barricades, tear gas, fires.
    A crawler walks further into the open archives every three hours (crawler/riot.mjs) and the corpus keeps growing.
    Meanwhile a machine invents riots of robots, cyborgs and androids (crawler/robots.mjs), and figures of them
@@ -218,7 +218,7 @@ function show(it) {
     HY.make(real).then((blob) => {
       const im = new Image();
       im.alt = ""; im.src = URL.createObjectURL(blob); im._blob = true;
-      im._it = { t: "Altered: " + (real.t || ""), a: [real.a, "figures imagined by a machine (Pollinations.AI) for RIOT!"].filter(Boolean).join(" / "),
+      im._it = { t: "Altered: " + (real.t || ""), a: [real.a, "figures imagined by a machine (Pollinations.AI) for BRAIN RIOT"].filter(Boolean).join(" / "),
         l: (real.l ? real.l + ", " : "") + "altered", k: real.k, s: real.s };
       const ok = () => { loading--; ready.push(im); begin(); fill(); };
       im.decode ? im.decode().then(ok, ok) : (im.onload = ok);
