@@ -29,6 +29,9 @@ The crawler writes the scenes and a machine imagines them (<a href="https://poll
 <p class="d">About one in five is a hybrid: real photographs and old engravings into which the page slips, each time differently,
 figures of robots and cyborgs that the machine imagines alone on white, photographed or engraved (<span id="f">…</span> figures so far).
 No hybrid passes twice the same. Only pictures whose licence allows changes are altered; in the list below they are marked “altered”.</p>
+<p class="d">Now and then, rarely, words, big, over the images: classic slogans of the riots of every time, and the words of the protests of these days,
+picked up every three hours from the news and from Wikipedia (<span id="w">…</span> so far). Calls to kill and words against a people, a faith or a community are left out.
+In the list below they are marked “a classic” or “words of” the day they were heard.</p>
 <p class="d">The images that have passed on this screen, newest first — title, author, license, link to the original:</p>
 <ol id="l"></ol>
 <p id="none" class="d" hidden>Nothing has passed on this screen yet. Open <a href="./">BRAIN RIOT</a> and come back.</p>
@@ -59,6 +62,9 @@ fetch("https://raw.githubusercontent.com/jacoponatoli/BRAIN-RIOT/robots/robots.j
     document.getElementById("f").textContent = Number((d.figures || []).length).toLocaleString("en");
   })
   .catch(() => { document.getElementById("b").textContent = document.getElementById("f").textContent = "none yet"; });
+fetch("https://raw.githubusercontent.com/jacoponatoli/BRAIN-RIOT/main/slogans.json?v=" + Math.floor(Date.now() / 600e3))
+  .then(r => r.json()).then(d => { document.getElementById("w").textContent = ((d.classics || []).length + (d.current || []).length).toLocaleString("en"); })
+  .catch(() => { document.getElementById("w").textContent = "a few"; });
 })();
 </script>
 </body>
