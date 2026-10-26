@@ -1,4 +1,4 @@
-// RIOT! — Jacopo Natoli, 2026
+// BRAIN RIOT — Jacopo Natoli, 2026
 // Invented riots: robots, cyborgs, androids and the like, in the streets of the real riots.
 // Every three hours, next to the crawler, this script writes new scenes, has a machine imagine them
 // (Pollinations.AI, free: one image every 45 seconds), cuts away the logo and keeps the images
@@ -214,8 +214,8 @@ const keep = (s, out, w, h) => {
     return;
   }
   fs.writeFileSync(path.join(OUT, "img", name), out);
-  data.items.push([RAW + "img/" + name, CDN + "img/" + name, "Invented riot: " + s.text, "imagined by a machine (Pollinations.AI) for RIOT!",
-    "invented", RAW + "img/" + name, "RIOT! robots", new Date().getUTCFullYear(), "robots", s.look, w, h]);
+  data.items.push([RAW + "img/" + name, CDN + "img/" + name, "Invented riot: " + s.text, "imagined by a machine (Pollinations.AI) for BRAIN RIOT",
+    "invented", RAW + "img/" + name, "BRAIN RIOT robots", new Date().getUTCFullYear(), "robots", s.look, w, h]);
   console.log("+", name, s.text.slice(0, 90));
 };
 const count = (k) => data.figures.filter((f) => f[1] === k).length + data.pending.filter((f) => f.kind === k).length;
