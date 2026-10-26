@@ -17,7 +17,7 @@ const SEEDS = process.argv[2] === "--seeds";
 const OUT = SEEDS ? "" : process.argv[2] || "robots-out";
 const MINUTES = +(SEEDS ? 0 : process.argv[3] || process.env.ROBOT_MINUTES || 25);
 const DEADLINE = Date.now() + MINUTES * 60e3;
-const REPO = process.env.GITHUB_REPOSITORY || "jacoponatoli/PROTEST";
+const REPO = process.env.GITHUB_REPOSITORY || "jacoponatoli/BRAIN-RIOT";
 const RAW = `https://raw.githubusercontent.com/${REPO}/robots/`;
 const CDN = `https://cdn.jsdelivr.net/gh/${REPO}@robots/`;
 const SEED_FILE = "crawler/robots-seeds.json";
@@ -149,7 +149,7 @@ function figure(kind) {                                           // a single be
 }
 let sharp;
 async function imagine(url, timeout, whole) {
-  const r = await fetch(url, { headers: { "User-Agent": "RIOT-art-project/1.0 (https://jacoponatoli.github.io/PROTEST/)" }, signal: AbortSignal.timeout(timeout) });
+  const r = await fetch(url, { headers: { "User-Agent": "BRAIN-RIOT-art-project/1.0 (https://jacoponatoli.github.io/BRAIN-RIOT/)" }, signal: AbortSignal.timeout(timeout) });
   const type = r.headers.get("content-type") || "";
   if (!r.ok || !type.startsWith("image/")) {
     const body = (await r.text().catch(() => "")).slice(0, 300);
@@ -192,7 +192,7 @@ fs.mkdirSync(path.join(OUT, "img"), { recursive: true });
 fs.mkdirSync(path.join(OUT, "raw"), { recursive: true });
 const FILE = path.join(OUT, "robots.json");
 let data = { items: [] };
-try { data = JSON.parse(fs.readFileSync(FILE, "utf8")); } catch (e) {}
+try { data = JSON.parse(fs.readFileSync(FILE, "utf8").replace(/jacoponatoli\/PROTEST([/@])/g, REPO + "$1")); } catch (e) {}   // the repository was called PROTEST
 data.items ||= [];
 data.figures ||= [];                                              // [url, "cut" | "ink", text]: cut out by crawler/figures.py
 data.pending ||= [];                                              // figures waiting to be cut out
