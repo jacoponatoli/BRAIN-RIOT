@@ -59,6 +59,11 @@ jobs:
         continue-on-error: true
       - run: python crawler/figures.py robots-out
         continue-on-error: true
+      # and the machine paints beings of the future straight into real pictures (Kontext)
+      - env:
+          POLLINATIONS_KEY: ${{ secrets.POLLINATIONS_KEY }}
+        run: node crawler/kontext.mjs robots-out 8
+        continue-on-error: true
       - env:
           GH_TOKEN: ${{ github.token }}
         run: |
