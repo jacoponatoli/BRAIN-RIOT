@@ -1,0 +1,3 @@
+# BRAIN RIOT — Instagram photographs never to show.
+# One per line: an author (@name) or the link of a post (https://www.instagram.com/p/...).
+# Lines starting with # are notes. The robot reads this file at every round and takes away what matches.
