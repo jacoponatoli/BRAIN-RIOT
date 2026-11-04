@@ -96,7 +96,8 @@ for (let i = 0; i < N && free.length && models.length; i++) {
   } catch (e) {
     report.failed++;
     report.errors.push(String(e.message || e).slice(0, 200));
-    if (/402|balance|insufficient|pollen/i.test(String(e.message))) break;   // the day's pollen is spent
+    if (/: 402 |insufficient/i.test(String(e.message))) break;   // the day's pollen is spent
+    if (/: 5\d\d /.test(String(e.message))) await new Promise((r) => setTimeout(r, 20000));   // a passing hitch: wait, then the next
   }
 }
 
