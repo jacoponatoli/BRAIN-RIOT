@@ -29,6 +29,10 @@ The crawler writes the scenes and a machine imagines them (<a href="https://poll
 <p class="d">About one in five is a hybrid: real photographs and old engravings into which the page slips, each time differently,
 figures of robots and cyborgs that the machine imagines alone on white, photographed or engraved (<span id="f">…</span> figures so far).
 No hybrid passes twice the same. Only pictures whose licence allows changes are altered; in the list below they are marked “altered”.</p>
+<p class="d">About one in four comes from Instagram: photographs of these days posted under hashtags of protest, riot and strike
+(#protest, #manifestazione, #nokings, #huelgageneral…), <span id="i">…</span> so far, renewed every three hours.
+BRAIN RIOT does not own them and makes no commercial use of them: each keeps its author, named in the list below with a link to the post,
+and none is ever altered. An author who wants a photograph taken away can ask <a href="https://jacoponatoli.net">Jacopo Natoli</a>, and it goes.</p>
 <p class="d">Now and then, rarely, words, big, over the images: classic slogans of the riots of every time, and the words of the protests of these days,
 picked up every three hours from the news and from Wikipedia (<span id="w">…</span> so far). Calls to kill and words against a people, a faith or a community are left out.
 In the list below they are marked “a classic” or “words of” the day they were heard.</p>
@@ -62,6 +66,9 @@ fetch("https://raw.githubusercontent.com/jacoponatoli/BRAIN-RIOT/robots/robots.j
     document.getElementById("f").textContent = Number((d.figures || []).length).toLocaleString("en");
   })
   .catch(() => { document.getElementById("b").textContent = document.getElementById("f").textContent = "none yet"; });
+fetch("https://raw.githubusercontent.com/jacoponatoli/BRAIN-RIOT/insta/insta.json?v=" + Math.floor(Date.now() / 600e3))
+  .then(r => r.json()).then(d => { document.getElementById("i").textContent = Number(d.total || 0).toLocaleString("en"); })
+  .catch(() => { document.getElementById("i").textContent = "none yet"; });
 fetch("https://raw.githubusercontent.com/jacoponatoli/BRAIN-RIOT/main/slogans.json?v=" + Math.floor(Date.now() / 600e3))
   .then(r => r.json()).then(d => { document.getElementById("w").textContent = ((d.classics || []).length + (d.current || []).length).toLocaleString("en"); })
   .catch(() => { document.getElementById("w").textContent = "a few"; });
