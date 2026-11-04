@@ -32,6 +32,7 @@ html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden;cursor
    A crawler walks further into the open archives every three hours (crawler/riot.mjs) and the corpus keeps growing.
    Meanwhile a machine invents riots of robots, cyborgs and androids (crawler/robots.mjs), and figures of them
    that the page slips, each time differently, into the real photographs and engravings: hybrids.
+   And photographs of these days, from Instagram hashtags of protest (crawler/insta.py): never owned, never altered.
    Half a second each, as a rule; now and then a rush, a jam, a stutter, a glitch.
    And now and then, rarely, words, big, over the images: classic slogans, and the words of the protests of these days,
    picked up from the news every three hours (crawler/slogans.mjs). Credits: credits.html */
@@ -42,9 +43,11 @@ const STEP = 500;                                  // as a rule every image stay
 const RELOAD = 30 * 60e3;                          // look at the corpus again every half hour
 const RAW = "https://raw.githubusercontent.com/jacoponatoli/BRAIN-RIOT/main/";
 const BOTS = "https://raw.githubusercontent.com/jacoponatoli/BRAIN-RIOT/robots/";
+const INSTA = "https://raw.githubusercontent.com/jacoponatoli/BRAIN-RIOT/insta/";
 const moved = (u) => typeof u === "string" ? u.replace(/jacoponatoli\/PROTEST([/@])/, "jacoponatoli/BRAIN-RIOT$1") : u;   // the work was called PROTEST, then RIOT!
 const INVENTED = 0.15;                             // riots wholly invented by the machine
 const HYBRID = 0.2;                                // real pictures with beings of the future slipped in
+const STREET = 0.25;                               // photographs of these days from Instagram: shown as they are
 const P_RUSH = 0.02, P_JAM = 0.012, P_STUTTER = 0.01, P_GLITCH = 0.02;   // now and then, per beat
 const CALM = matchMedia("(prefers-reduced-motion: reduce)").matches;    // no rushes nor glitches for who asked so
 
@@ -97,6 +100,25 @@ async function dream() {                           // the invented riots, and th
       botDeck.splice(rint(botDeck.length + 1), 0, it);
     }
     for (const f of d.figures || []) if (f && f[0] && !figHave.has(f[0])) { figHave.add(f[0]); figs.push({ u: moved(f[0]), ink: f[1] === "ink", t: f[2] }); }
+  } catch (e) {}
+}
+
+const grams = [], gramHave = new Set();
+let gramDeck = [];
+async function street() {                          // the photographs of these days, from Instagram hashtags
+  try {
+    const r = await fetch(INSTA + "insta.json?v=" + Math.floor(Date.now() / 600e3), { cache: "no-cache" });
+    if (!r.ok) return;
+    const d = await r.json(), alive = new Set((d.items || []).map((x) => x && x[0]));
+    for (let i = grams.length - 1; i >= 0; i--) if (!alive.has(grams[i].u)) grams.splice(i, 1);   // the ones taken away go
+    for (const x of d.items || []) {
+      if (!x || !x[0] || gramHave.has(x[0])) continue;
+      gramHave.add(x[0]);
+      const it = { u: x[0], t: x[2], a: x[3], l: x[4], k: x[5], s: x[6], g: 1 };
+      grams.push(it);
+      gramDeck.splice(rint(gramDeck.length + 1), 0, it);
+    }
+    gramDeck = gramDeck.filter((it) => alive.has(it.u));
   } catch (e) {}
 }
 
@@ -212,8 +234,10 @@ function next() {
   const r = Math.random();
   const inv = INVENTED * Math.min(1, bots.length / 30);
   const hyb = HYBRID * Math.min(1, figs.length / 12);
+  const gra = STREET * Math.min(1, grams.length / 60);
   if (bots.length && r < inv) { if (!botDeck.length) botDeck = shuffle(bots.slice()); return botDeck.pop(); }
-  if (hy.length && r < inv + hyb) {                // old prints get their share of the future
+  if (grams.length && r < inv + gra) { if (!gramDeck.length) gramDeck = shuffle(grams.slice()); return gramDeck.pop(); }
+  if (hy.length && r < inv + gra + hyb) {          // old prints get their share of the future
     const src = hyOld.length && figs.some((f) => f.ink) && Math.random() < 0.3 ? hyOld : hy;
     return { h: src[rint(src.length)] };
   }
@@ -243,7 +267,7 @@ function show(it) {
   const finish = (ok) => {
     if (over) return; over = true; clearTimeout(timer); loading--;
     if (ok) { im._it = it; ready.push(im); begin(); }
-    else { const list = it.b ? bots : pool, i = list.indexOf(it); if (i > -1) list.splice(i, 1); }
+    else { const list = it.b ? bots : it.g ? grams : pool, i = list.indexOf(it); if (i > -1) list.splice(i, 1); }
     fill();
   };
   const fail = () => {
@@ -395,6 +419,8 @@ e/ec/Lyon_2e_-_Rue_de_la_Barre_-_Magasin_Citadium_pill%C3%A9_apr%C3%A8s_les_mani
 try { for (const k of ["PROTEST!pool", "PROTEST!v2", "PROTEST!recent", "PROTEST!riot"]) localStorage.removeItem(k); } catch (e) {}   // earlier versions
 dream();
 setInterval(dream, RELOAD);
+street();
+setInterval(street, RELOAD);
 (async () => {
   const s = await load("riot-sample.json");
   if (s && s.items && s.items.length) for (const r of s.items) add(r);
@@ -409,7 +435,7 @@ setInterval(dream, RELOAD);
 })();
 setInterval(flushSeen, 20000);
 addEventListener("pagehide", flushSeen);
-if (/debug/.test(location.search)) window.RIOT = { pool, ready, bots, figs, hy, hyOld, shown, HY, words: () => words, shout };
+if (/debug/.test(location.search)) window.RIOT = { pool, ready, bots, figs, grams, hy, hyOld, shown, HY, words: () => words, shout };
 })();
 </script>
 </body>
