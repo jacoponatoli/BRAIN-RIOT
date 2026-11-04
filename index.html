@@ -85,8 +85,8 @@ async function grow() {
   const c = await load("riot-corpus.json");
   if (c && c.items) { for (const r of c.items) add(r); fill(); }
 }
-const bots = [], botHave = new Set(), figs = [], figHave = new Set();
-let botDeck = [];
+const bots = [], botHave = new Set(), figs = [], figHave = new Set(), alts = [], altHave = new Set();
+let botDeck = [], altDeck = [];
 async function dream() {                           // the invented riots, and the figures for the hybrids
   try {
     const r = await fetch(BOTS + "robots.json?v=" + Math.floor(Date.now() / 600e3), { cache: "no-cache" });
@@ -98,6 +98,13 @@ async function dream() {                           // the invented riots, and th
       const it = { u: moved(x[0]), o: moved(x[1]), t: x[2], a: x[3], l: x[4], k: moved(x[5]), s: x[6], b: 1 };
       bots.push(it);
       botDeck.splice(rint(botDeck.length + 1), 0, it);
+    }
+    for (const x of d.altered || []) {             // hybrids painted by the machine itself (Kontext)
+      if (!x || !x[0] || altHave.has(x[0])) continue;
+      altHave.add(x[0]);
+      const it = { u: x[0], t: x[2], a: x[3], l: x[4], k: x[5], s: x[6], x: 1 };
+      alts.push(it);
+      altDeck.splice(rint(altDeck.length + 1), 0, it);
     }
     for (const f of d.figures || []) if (f && f[0] && !figHave.has(f[0])) { figHave.add(f[0]); figs.push({ u: moved(f[0]), ink: f[1] === "ink", t: f[2] }); }
   } catch (e) {}
@@ -237,6 +244,10 @@ function next() {
   const gra = STREET * Math.min(1, grams.length / 60);
   if (bots.length && r < inv) { if (!botDeck.length) botDeck = shuffle(bots.slice()); return botDeck.pop(); }
   if (grams.length && r < inv + gra) { if (!gramDeck.length) gramDeck = shuffle(grams.slice()); return gramDeck.pop(); }
+  if (alts.length && r < inv + gra + hyb && Math.random() < Math.min(0.7, alts.length / 20)) {   // painted in by the machine
+    if (!altDeck.length) altDeck = shuffle(alts.slice());
+    return altDeck.pop();
+  }
   if (hy.length && r < inv + gra + hyb) {          // old prints get their share of the future
     const src = hyOld.length && figs.some((f) => f.ink) && Math.random() < 0.3 ? hyOld : hy;
     return { h: src[rint(src.length)] };
@@ -267,7 +278,7 @@ function show(it) {
   const finish = (ok) => {
     if (over) return; over = true; clearTimeout(timer); loading--;
     if (ok) { im._it = it; ready.push(im); begin(); }
-    else { const list = it.b ? bots : it.g ? grams : pool, i = list.indexOf(it); if (i > -1) list.splice(i, 1); }
+    else { const list = it.b ? bots : it.g ? grams : it.x ? alts : pool, i = list.indexOf(it); if (i > -1) list.splice(i, 1); }
     fill();
   };
   const fail = () => {
@@ -435,7 +446,7 @@ setInterval(street, RELOAD);
 })();
 setInterval(flushSeen, 20000);
 addEventListener("pagehide", flushSeen);
-if (/debug/.test(location.search)) window.RIOT = { pool, ready, bots, figs, grams, hy, hyOld, shown, HY, words: () => words, shout };
+if (/debug/.test(location.search)) window.RIOT = { pool, ready, bots, figs, alts, grams, hy, hyOld, shown, HY, words: () => words, shout };
 })();
 </script>
 </body>
