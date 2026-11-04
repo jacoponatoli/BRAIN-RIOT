@@ -69,3 +69,38 @@ jobs:
           git add -A
           git commit -q -m "RIOT!: the robots invent new riots"
           git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/robots
+  insta:
+    # photographs of these days from Instagram hashtags; they live on the "insta" branch, without history
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: insta
+          path: insta-out
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -U gallery-dl pillow
+      - env:
+          IG_SESSIONID: ${{ secrets.IG_SESSIONID }}
+          IG_COOKIES: ${{ secrets.IG_COOKIES }}
+        run: python crawler/insta.py insta-out
+        continue-on-error: true
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -f insta-out/insta.json ] || exit 0
+          cd insta-out
+          if git rev-parse -q --verify HEAD >/dev/null 2>&1; then
+            [ -z "$(git status --porcelain)" ] && exit 0
+            git checkout -q --orphan fresh
+          else rm -rf .git; git init -q -b fresh; fi
+          git config user.name "riot-bot"
+          git config user.email "riot-bot@users.noreply.github.com"
+          git add -A
+          git commit -q -m "BRAIN RIOT: photographs of these days, from Instagram"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/insta
