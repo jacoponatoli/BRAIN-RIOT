@@ -1,35 +1,37 @@
 # BRAIN RIOT — Jacopo Natoli, 2026
-# Photographs of the protests of these days, from Instagram: the posts under hashtags of protest, riot, strike.
+# Photographs of the protests of these days, from Instagram, chosen by hand: the links of the posts are written in
+# instagram-links.txt (one per line), and every three hours this script fetches the ones it has not seen yet.
+# No account, no login: it reads only the public "embed" version of each post, the one websites use to show it.
 # BRAIN RIOT does not own them and makes no commercial use of them. Each keeps its author and a link to its post,
-# and none is ever altered (no hybrids). They live on the "insta" branch, without history: the newest stay.
-#
-# Instagram wants a logged-in account: the "sessionid" cookie of an account (better a secondary one) goes into the
-# repository secret IG_SESSIONID, or a whole cookies.txt into IG_COOKIES. Without it nothing happens.
+# and none is ever altered (no hybrids). They live on the "insta" branch, without history.
 # Photographs never to show: crawler/insta-ban.txt (an @author or a post link per line).
 #
 # Usage: python crawler/insta.py <folder of the insta branch>
 
-import json, os, re, subprocess, sys, tempfile, time, glob
+import html, io, json, os, re, sys, time, urllib.request
 from PIL import Image
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else "insta-out"
 REPO = os.environ.get("GITHUB_REPOSITORY", "jacoponatoli/BRAIN-RIOT")
 RAW = f"https://raw.githubusercontent.com/{REPO}/insta/"
-KEEP = 1200                 # the newest photographs stay, the oldest give way
-PER_TAG = 12                # new photographs per hashtag, per round
-TAGS_PER_RUN = 8            # a few hashtags each round, in turn: Instagram does not like hurry
+LINKS = "instagram-links.txt"
 BAN_FILE = "crawler/insta-ban.txt"
-TAGS = [
-    "riotpolice", "protest", "protesters", "demonstration", "streetprotest", "generalstrike", "nokings", "teargas",
-    "manifestazione", "corteo", "scioperogenerale", "manifestation", "manif", "emeute", "bloquonstout",
-    "protesta", "manifestacion", "huelgageneral", "manifestantes", "demonstranten", "protesto", "barricades",
-    "antifa", "acab",
-]
+PER_RUN = 40                # a few at a time: Instagram does not like hurry
+UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
 
-SESSION = os.environ.get("IG_SESSIONID", "").strip()
-COOKIES = os.environ.get("IG_COOKIES", "").strip()
-if not SESSION and not COOKIES:
-    print("no Instagram session (secret IG_SESSIONID or IG_COOKIES): nothing to do")
+def lines(path):
+    try:
+        return [l.strip() for l in open(path, encoding="utf-8") if l.strip() and not l.strip().startswith("#")]
+    except OSError:
+        return []
+
+codes = []
+for l in lines(LINKS):
+    m = re.search(r"instagram\.com/(?:[A-Za-z0-9_.]+/)?(p|reel|reels|tv)/([A-Za-z0-9_-]+)", l)
+    if m and m.group(2) not in codes:
+        codes.append(m.group(2))
+if not codes:
+    print("no links in", LINKS, ": nothing to do")
     sys.exit(0)
 
 os.makedirs(os.path.join(OUT, "img"), exist_ok=True)
@@ -39,87 +41,69 @@ try:
 except Exception:
     data = {}
 items = data.get("items", [])
-known = {it[5] for it in items}
-
-ban = []
-try:
-    ban = [l.strip().lower() for l in open(BAN_FILE, encoding="utf-8") if l.strip() and not l.startswith("#")]
-except OSError:
-    pass
+failed = data.get("failed", {})              # code -> attempts: after three, it is left alone
+ban = [b.lower() for b in lines(BAN_FILE)]
 def banned(author, link):
-    a, k = (author or "").lower(), (link or "").lower().rstrip("/")
-    return any(b == a or b.lstrip("@") == a.lstrip("@") or (len(b) > 6 and b.rstrip("/") in k) for b in ban)
+    a, k = (author or "").lower().lstrip("@"), (link or "").lower().rstrip("/")
+    return any(b.lstrip("@") == a or (len(b) > 6 and b.rstrip("/") in k) for b in ban)
 
-tmp = tempfile.mkdtemp()
-cfg = {"extractor": {"instagram": {"videos": False}}}
-cookie_args = []
-if COOKIES:
-    path = os.path.join(tmp, "cookies.txt")
-    open(path, "w").write(COOKIES + "\n")
-    cookie_args = ["--cookies", path]
-else:
-    cfg["extractor"]["instagram"]["cookies"] = {"sessionid": SESSION}
-cfg_path = os.path.join(tmp, "config.json")
-json.dump(cfg, open(cfg_path, "w"))
+def get(url):
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "en"})
+    with urllib.request.urlopen(req, timeout=40) as r:
+        return r.read()
 
-start = data.get("cursor", 0) % len(TAGS)
-tags = [TAGS[(start + i) % len(TAGS)] for i in range(TAGS_PER_RUN)]
-report = {"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "tags": tags, "new": 0, "errors": []}
+have = {it[5].rstrip("/").rsplit("/", 1)[-1] for it in items}
+todo = [c for c in codes if c not in have and failed.get(c, 0) < 3][:PER_RUN]
 now = time.strftime("%Y-%m-%d", time.gmtime())
+report = {"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "links": len(codes), "new": 0, "errors": []}
 
-for tag in tags:
-    d = os.path.join(tmp, tag)
-    cmd = [sys.executable, "-m", "gallery_dl", "-c", cfg_path, *cookie_args,
-           "--download-archive", os.path.join(OUT, "archive.sqlite3"),
-           "--range", "1-40", "--filter", "num <= 1 and extension in ('jpg', 'jpeg', 'webp', 'png')",
-           "--write-metadata", "--no-part", "-D", d, f"https://www.instagram.com/explore/tags/{tag}/"]
+for code in todo:
+    link = f"https://www.instagram.com/p/{code}/"
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-        if p.returncode:
-            last = [l for l in (p.stderr or "").splitlines() if l.strip()][-1:] or ["exit " + str(p.returncode)]
-            report["errors"].append(f"#{tag}: {last[0][:160]}")
-    except subprocess.TimeoutExpired:
-        report["errors"].append(f"#{tag}: timeout")
-    taken = 0
-    for meta in sorted(glob.glob(os.path.join(d, "*.json"))):
-        if taken >= PER_TAG:
-            break
-        img = meta[:-5]
-        try:
-            m = json.load(open(meta, encoding="utf-8"))
-            code = m.get("post_shortcode") or m.get("shortcode")
-            link = m.get("post_url") or f"https://www.instagram.com/p/{code}/"
-            author = "@" + (m.get("username") or "unknown")
-            if not code or link in known or banned(author, link) or not os.path.exists(img):
-                continue
-            im = Image.open(img)
-            if min(im.size) < 320:
-                continue
-            im = im.convert("RGB")
-            im.thumbnail((960, 960), Image.LANCZOS)
-            name = re.sub(r"[^A-Za-z0-9_-]", "", code) + ".webp"
-            im.save(os.path.join(OUT, "img", name), "WEBP", quality=74, method=6)
-            date = str(m.get("post_date") or m.get("date") or now)[:10]
-            # [url, fallback, title, author, license, link, source, added]
-            items.append([RAW + "img/" + name, "", f"#{tag}, Instagram, {date}", author,
-                          "© the author: shown, not owned, no commercial use", link, f"instagram/#{tag}", now])
-            known.add(link)
-            taken += 1
-            report["new"] += 1
-            print("+", f"#{tag}", author, link)
-        except Exception as e:
-            report["errors"].append(f"#{tag}: {type(e).__name__} {str(e)[:100]}")
-    time.sleep(5)
+        page = get(link + "embed/captioned/").decode("utf-8", "replace")
+        src = None
+        m = re.search(r'class="EmbeddedMediaImage"[^>]*?srcset="([^"]+)"', page) or re.search(r'srcset="([^"]+)"[^>]*class="EmbeddedMediaImage"', page)
+        if m:                                       # the largest of the sizes offered
+            src = html.unescape(m.group(1)).split(",")[-1].strip().split(" ")[0]
+        if not src:
+            m = re.search(r'class="EmbeddedMediaImage"[^>]*?src="([^"]+)"', page) or re.search(r'src="([^"]+)"[^>]*class="EmbeddedMediaImage"', page)
+            src = m and html.unescape(m.group(1))
+        if not src:
+            m = re.search(r'"display_url"\s*:\s*"([^"]+)"', page)
+            src = m and json.loads('"' + m.group(1) + '"')
+        if not src:
+            raise ValueError("no picture in the embed (private, removed, or a video)")
+        m = re.search(r'class="UsernameText"[^>]*>([^<]+)<', page) or re.search(r'"owner"\s*:\s*\{[^}]*"username"\s*:\s*"([^"]+)"', page)
+        author = "@" + (html.unescape(m.group(1)).strip() if m else "unknown")
+        if banned(author, link):
+            failed[code] = 3
+            continue
+        im = Image.open(io.BytesIO(get(src)))
+        if min(im.size) < 240:
+            raise ValueError("too small")
+        im = im.convert("RGB")
+        im.thumbnail((960, 960), Image.LANCZOS)
+        name = re.sub(r"[^A-Za-z0-9_-]", "", code) + ".webp"
+        im.save(os.path.join(OUT, "img", name), "WEBP", quality=76, method=6)
+        # [url, fallback, title, author, license, link, source, added]
+        items.append([RAW + "img/" + name, "", f"Instagram, chosen {now}", author,
+                      "© the author: shown, not owned, no commercial use", link, "instagram", now])
+        report["new"] += 1
+        print("+", author, link)
+    except Exception as e:
+        failed[code] = failed.get(code, 0) + 1
+        report["errors"].append(f"{code}: {type(e).__name__} {str(e)[:120]}")
+    time.sleep(4)
 
-# the banned go, the oldest give way, and their files with them
-items = [it for it in items if not banned(it[3], it[5])][-KEEP:]
+# the banned and the links taken away from the list go, with their files
+keep_codes = set(codes)
+items = [it for it in items if not banned(it[3], it[5]) and it[5].rstrip("/").rsplit("/", 1)[-1] in keep_codes]
 alive = {it[0].rsplit("/", 1)[-1] for it in items}
 for f in os.listdir(os.path.join(OUT, "img")):
     if f not in alive:
         os.remove(os.path.join(OUT, "img", f))
 
-if report["errors"] and not report["new"] and any(re.search(r"login|auth|401|403|checkpoint|redirect", e, re.I) for e in report["errors"]):
-    report["note"] = "Instagram refused the session: log in again and renew the secret IG_SESSIONID"
-data.update({"updated": report["at"], "total": len(items), "items": items, "cursor": (start + TAGS_PER_RUN) % len(TAGS), "lastRun": report})
+data.update({"updated": report["at"], "total": len(items), "items": items, "failed": failed, "lastRun": report})
+data.pop("cursor", None)
 json.dump(data, open(FILE, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
 print(json.dumps({**report, "errors": report["errors"][:6], "total": len(items)}, ensure_ascii=False))
