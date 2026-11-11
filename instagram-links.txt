@@ -1,0 +1,3 @@
+# BRAIN RIOT — photographs from Instagram, chosen by hand.
+# Paste the link of a post on a new line (Share → Copy link). Every three hours the robot fetches the new ones,
+# without any account. To take a photograph away, delete its line.
